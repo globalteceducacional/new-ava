@@ -1,0 +1,191 @@
+# AVA — Compose de PRODUÇÃO / homologação
+# Uso (Caddy na 80/443 — VPS dedicada ao AVA):
+#   1. copy .env.prod.example .env.prod
+#   2. scripts/gen-prod-secrets + ajuste AVA_DOMAIN / URLs
+#   3. docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --scale api=2
+#
+# Uso (nginx do host — vários sites na mesma VPS):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.prod.behind-nginx.yml \
+#     --env-file .env.prod up -d --build --scale api=2
+#   + deploy/nginx-ava.conf.example no nginx do host
+#
+# Sem bind mounts de código-fonte. Segredos vêm só do --env-file.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ava_internal
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.1-p0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-500}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_POOL_SIZE:-40}
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      AUTH_TYPE: scram-sha-256
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - ava_internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD}']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ava_internal
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ava_internal
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      # App → PgBouncer (pool). connection_limit = conexões Prisma por réplica.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}?schema=public&pgbouncer=true&connection_limit=${PRISMA_CONNECTION_LIMIT:-5}
+      # Migrations / introspect → Postgres direto (entrypoint).
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ava-media}
+      MINIO_USE_SSL: 'false'
+      # HLS offload (Caddy /media-cdn → MinIO). Ex.: https://ava.exemplo.com.br/media-cdn
+      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL}
+      MEDIA_PLAYBACK_TOKEN_TTL: ${MEDIA_PLAYBACK_TOKEN_TTL:-5m}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      MEDIA_MAX_UPLOAD_BYTES: ${MEDIA_MAX_UPLOAD_BYTES:-1073741824}
+      MEDIA_DEFAULT_QUOTA_BYTES: ${MEDIA_DEFAULT_QUOTA_BYTES:-10737418240}
+      MEDIA_TRANSCODE_CONCURRENCY: ${MEDIA_TRANSCODE_CONCURRENCY:-1}
+      LOGIN_MAX_FAILURES: ${LOGIN_MAX_FAILURES:-5}
+      LOGIN_LOCKOUT_SECONDS: ${LOGIN_LOCKOUT_SECONDS:-900}
+      LOGIN_IP_RATE_LIMIT: ${LOGIN_IP_RATE_LIMIT:-30}
+      LOGIN_IP_RATE_WINDOW_SEC: ${LOGIN_IP_RATE_WINDOW_SEC:-300}
+      CERTIFICATES_DIR: ${CERTIFICATES_DIR:-/data/certificates}
+      SEED_PASSWORD: ${SEED_PASSWORD:-}
+      THROTTLE_TTL_MS: ${THROTTLE_TTL_MS:-60000}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-300}
+      THROTTLE_STORAGE: ${THROTTLE_STORAGE:-redis}
+      CATALOG_CACHE_TTL_SEC: ${CATALOG_CACHE_TTL_SEC:-60}
+    volumes:
+      - certificates_data:/data/certificates
+    expose:
+      - '3000'
+    networks:
+      - ava_internal
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOSTNAME: 0.0.0.0
+    expose:
+      - '3001'
+    networks:
+      - ava_internal
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+      - minio
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    environment:
+      AVA_DOMAIN: ${AVA_DOMAIN:-localhost}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-ops@localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - ava_internal
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  certificates_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  ava_internal:
+    driver: bridge

@@ -1,0 +1,827 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  /// Conexão direta ao Postgres (migrations). Com PgBouncer, não use o pooler aqui.
+  directUrl = env("DIRECT_URL")
+}
+
+enum RoleCode {
+  ADM_MASTER
+  ADM_INSTITUICAO
+  PROFESSOR
+  ALUNO
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAIL
+  LOGOUT
+  USER_CREATE
+  USER_UPDATE
+  USER_DELETE
+  USER_PASSWORD_RESET
+  INSTITUTION_CREATE
+  INSTITUTION_UPDATE
+  INSTITUTION_DELETE
+  COURSE_CREATE
+  COURSE_UPDATE
+  COURSE_DELETE
+  COURSE_STATUS_CHANGE
+  ENROLLMENT_CREATE
+  ENROLLMENT_DELETE
+  TEACHER_ASSIGN
+  TEACHER_UNASSIGN
+  INSTITUTION_COURSE_LINK
+  INSTITUTION_COURSE_UNLINK
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+}
+
+/// Como o aluno entrou no curso: grade obrigatória vs inscrição opcional.
+enum EnrollmentSource {
+  ASSIGNED
+  SELF
+}
+
+enum MediaAssetStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+/// Papel do sistema (RBAC). Roles de sistema são globais (school_id NULL no painel admin).
+model Role {
+  id          String   @id @default(cuid())
+  code        RoleCode @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(true) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?  @map("deleted_by")
+  createdBy   String?  @map("created_by")
+  updatedBy   String?  @map("updated_by")
+
+  users            User[]
+  members          InstitutionMember[]
+  rolePermissions  RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  module      String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?  @map("deleted_by")
+  createdBy   String?  @map("created_by")
+  updatedBy   String?  @map("updated_by")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  username     String     @unique
+  passwordHash String     @map("password_hash")
+  name         String
+  /// Chave do objeto no MinIO (ex.: avatars/{userId}/foto.jpg).
+  avatarKey    String?    @map("avatar_key")
+  status       UserStatus @default(ACTIVE)
+  /// Role primária do usuário (ADM_MASTER é sempre global).
+  roleId       String     @map("role_id")
+  role         Role       @relation(fields: [roleId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
+  deletedBy    String?    @map("deleted_by")
+  createdBy    String?    @map("created_by")
+  updatedBy    String?    @map("updated_by")
+
+  memberships    InstitutionMember[]
+  refreshTokens  RefreshToken[]
+  auditLogs      AuditLog[]          @relation("AuditActor")
+  courseTeachers CourseTeacher[]
+  enrollments    Enrollment[]
+  activitySubmissions ActivitySubmission[]
+  quizAttempts   QuizAttempt[]
+  communityTopics CommunityTopic[]
+  communityReplies CommunityReply[]
+  mediaAssets    MediaAsset[]
+  notifications  Notification[]
+  lessonProgress LessonProgress[]
+  certificates   Certificate[]
+
+  @@index([roleId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Institution {
+  id                String    @id @default(cuid())
+  name              String
+  slug              String    @unique
+  status            String    @default("ACTIVE")
+  /// Legado: quota por instituição não é mais aplicada.
+  storageQuotaBytes BigInt    @default(10737418240) @map("storage_quota_bytes")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  deletedBy         String?   @map("deleted_by")
+  createdBy         String?   @map("created_by")
+  updatedBy         String?   @map("updated_by")
+
+  members   InstitutionMember[]
+  auditLogs AuditLog[]
+  courses   InstitutionCourse[]
+  enrollments Enrollment[]
+
+  @@index([deletedAt])
+  @@map("institutions")
+}
+
+model InstitutionMember {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  institutionId String    @map("institution_id")
+  roleId        String    @map("role_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  deletedBy     String?   @map("deleted_by")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  role        Role        @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, institutionId])
+  @@index([institutionId])
+  @@index([deletedAt])
+  @@map("institution_members")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  userAgent String?   @map("user_agent")
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  actorId       String?     @map("actor_id")
+  action        AuditAction
+  institutionId String?     @map("institution_id")
+  metadata      Json?
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  actor       User?        @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Taxonomia global do catálogo — NÃO pertence à instituição.
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  courses CourseCategory[]
+
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+/// Curso do catálogo — existe sem instituição (sem institutionId).
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  synopsis    String?
+  /// Carga horária do curso em horas inteiras (ex.: 2, 4, 8, 20).
+  workloadHours Int         @default(0) @map("workload_hours")
+  status      CourseStatus @default(DRAFT)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+  deletedBy   String?      @map("deleted_by")
+  createdBy   String?      @map("created_by")
+  updatedBy   String?      @map("updated_by")
+
+  categories   CourseCategory[]
+  institutions InstitutionCourse[]
+  teachers     CourseTeacher[]
+  enrollments  Enrollment[]
+  contentItems ContentItem[]
+  modules      CourseModule[]
+  activities   Activity[]
+  quizzes      Quiz[]
+  communityTopics CommunityTopic[]
+  lessonProgress  LessonProgress[]
+  certificates    Certificate[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("courses")
+}
+
+model CourseCategory {
+  courseId   String @map("course_id")
+  categoryId String @map("category_id")
+
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, categoryId])
+  @@map("course_categories")
+}
+
+/// Instituição recebe (vincula) cursos do catálogo — N:N.
+model InstitutionCourse {
+  id            String    @id @default(cuid())
+  institutionId String    @map("institution_id")
+  courseId      String    @map("course_id")
+  active        Boolean   @default(true)
+  linkedAt      DateTime  @default(now()) @map("linked_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  deletedBy     String?   @map("deleted_by")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, courseId])
+  @@index([courseId])
+  @@index([active])
+  @@map("institution_courses")
+}
+
+model CourseTeacher {
+  id        String    @id @default(cuid())
+  courseId  String    @map("course_id")
+  userId    String    @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("course_teachers")
+}
+
+model Enrollment {
+  id            String           @id @default(cuid())
+  courseId      String           @map("course_id")
+  userId        String           @map("user_id")
+  institutionId String           @map("institution_id")
+  status        EnrollmentStatus @default(ACTIVE)
+  /// ASSIGNED = grade curricular (inst/professor); SELF = inscrição opcional do aluno.
+  source        EnrollmentSource @default(ASSIGNED)
+  enrolledAt    DateTime         @default(now()) @map("enrolled_at")
+  /// Preenchido quando a regra de conclusão do curso for atingida.
+  completedAt   DateTime?        @map("completed_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  deletedAt     DateTime?        @map("deleted_at")
+  deletedBy     String?          @map("deleted_by")
+  createdBy     String?          @map("created_by")
+  updatedBy     String?          @map("updated_by")
+
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId, institutionId])
+  @@index([userId])
+  @@index([institutionId])
+  @@index([status])
+  @@index([source])
+  @@index([completedAt])
+  @@index([deletedAt])
+  @@map("enrollments")
+}
+
+enum ContentItemType {
+  TEXT
+  FILE
+  LINK
+}
+
+enum ModuleMaterialType {
+  PDF
+  QUIZ
+  LINK
+  FILE
+}
+
+enum QuestionType {
+  MCQ
+  TF
+  MATCH
+  NUMERIC
+  ESSAY
+}
+
+/// Conteúdo avulso do curso (texto/arquivo/link), ordenável.
+model ContentItem {
+  id        String          @id @default(cuid())
+  courseId  String          @map("course_id")
+  type      ContentItemType
+  title     String
+  body      String?
+  url       String?
+  sortOrder Int             @default(0) @map("sort_order")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  deletedAt DateTime?       @map("deleted_at")
+  deletedBy String?         @map("deleted_by")
+  createdBy String?         @map("created_by")
+  updatedBy String?         @map("updated_by")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topics CommunityTopic[]
+
+  @@index([courseId, sortOrder])
+  @@index([deletedAt])
+  @@map("content_items")
+}
+
+/// Playlist de vídeos DENTRO do curso (≠ nível Iniciante/Avançado).
+model CourseModule {
+  id          String    @id @default(cuid())
+  courseId    String    @map("course_id")
+  title       String
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  course  Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  videos  ModuleVideo[]
+  topics  CommunityTopic[]
+  activities Activity[]
+  quizzes    Quiz[]
+
+  @@index([courseId, sortOrder])
+  @@index([deletedAt])
+  @@map("course_modules")
+}
+
+model ModuleVideo {
+  id          String    @id @default(cuid())
+  moduleId    String    @map("module_id")
+  title       String
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  module     CourseModule          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  materials  ModuleVideoMaterial[]
+  topics     CommunityTopic[]
+  mediaAsset MediaAsset?
+  progress   LessonProgress[]
+
+  @@index([moduleId, sortOrder])
+  @@index([deletedAt])
+  @@map("module_videos")
+}
+
+model MediaAsset {
+  id               String           @id @default(cuid())
+  ownerId          String           @map("owner_id")
+  moduleVideoId    String?          @unique @map("module_video_id")
+  originalFilename String           @map("original_filename")
+  mimeType         String           @map("mime_type")
+  sizeBytes        BigInt           @map("size_bytes")
+  status           MediaAssetStatus @default(UPLOADING)
+  /// Chave do arquivo original no MinIO (ex.: originals/{id}/source.mp4).
+  storageKey       String           @map("storage_key")
+  /// Prefixo HLS no MinIO (ex.: hls/{id}/) quando READY.
+  hlsPrefix        String?          @map("hls_prefix")
+  errorMessage     String?          @map("error_message") @db.Text
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  deletedAt        DateTime?        @map("deleted_at")
+  deletedBy        String?          @map("deleted_by")
+  createdBy        String?          @map("created_by")
+  updatedBy        String?          @map("updated_by")
+
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  moduleVideo ModuleVideo? @relation(fields: [moduleVideoId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("media_assets")
+}
+
+model ModuleVideoMaterial {
+  id            String             @id @default(cuid())
+  moduleVideoId String             @map("module_video_id")
+  type          ModuleMaterialType
+  title         String
+  url           String?
+  refId         String?            @map("ref_id")
+  sortOrder     Int                @default(0) @map("sort_order")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  deletedAt     DateTime?          @map("deleted_at")
+  deletedBy     String?            @map("deleted_by")
+  createdBy     String?            @map("created_by")
+  updatedBy     String?            @map("updated_by")
+
+  moduleVideo ModuleVideo @relation(fields: [moduleVideoId], references: [id], onDelete: Cascade)
+
+  @@index([moduleVideoId, sortOrder])
+  @@index([deletedAt])
+  @@map("module_video_materials")
+}
+
+model Activity {
+  id            String    @id @default(cuid())
+  courseId      String    @map("course_id")
+  /// Módulo da playlist em que a atividade aparece (visão do curso).
+  moduleId      String?   @map("module_id")
+  title         String
+  description   String?
+  dueDate       DateTime? @map("due_date")
+  /// Critérios [{ key, label, weight }] — pesos somam 1 (ou 100).
+  rubric        Json?
+  allowLate     Boolean   @default(false) @map("allow_late")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  deletedBy     String?   @map("deleted_by")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  course      Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module      CourseModule?        @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  submissions ActivitySubmission[]
+
+  @@index([courseId])
+  @@index([moduleId])
+  @@index([deletedAt])
+  @@map("activities")
+}
+
+model ActivitySubmission {
+  id          String    @id @default(cuid())
+  activityId  String    @map("activity_id")
+  studentId   String    @map("student_id")
+  text        String?
+  fileUrl     String?   @map("file_url")
+  /// Scores por critério da rubrica, ex.: { "clareza": 8, "funcionamento": 9 }
+  rubricScores Json?    @map("rubric_scores")
+  grade       Float?
+  feedback    String?
+  submittedAt DateTime  @default(now()) @map("submitted_at")
+  gradedAt    DateTime? @map("graded_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  student  User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, studentId])
+  @@index([studentId])
+  @@index([deletedAt])
+  @@map("activity_submissions")
+}
+
+model Quiz {
+  id             String    @id @default(cuid())
+  courseId       String    @map("course_id")
+  /// Módulo da playlist em que o quiz aparece (visão do curso).
+  moduleId       String?   @map("module_id")
+  title          String
+  description    String?
+  maxAttempts    Int?      @map("max_attempts")
+  timeLimitSec   Int?      @map("time_limit_sec")
+  shuffleQuestions Boolean @default(false) @map("shuffle_questions")
+  shuffleOptions Boolean   @default(false) @map("shuffle_options")
+  graded         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  deletedBy      String?   @map("deleted_by")
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module    CourseModule?  @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  @@index([courseId])
+  @@index([moduleId])
+  @@index([deletedAt])
+  @@map("quizzes")
+}
+
+model Question {
+  id        String       @id @default(cuid())
+  quizId    String       @map("quiz_id")
+  type      QuestionType @default(MCQ)
+  text      String
+  /// Para NUMERIC: valor esperado; para MATCH: mapa JSON.
+  answerKey Json?        @map("answer_key")
+  points    Float        @default(1)
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+  deletedBy String?      @map("deleted_by")
+  createdBy String?      @map("created_by")
+  updatedBy String?      @map("updated_by")
+
+  quiz    Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  answers QuizAnswer[]
+
+  @@index([quizId, sortOrder])
+  @@index([deletedAt])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String    @id @default(cuid())
+  questionId String    @map("question_id")
+  text       String
+  isCorrect  Boolean   @default(false) @map("is_correct")
+  sortOrder  Int       @default(0) @map("sort_order")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  String?   @map("deleted_by")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, sortOrder])
+  @@index([deletedAt])
+  @@map("question_options")
+}
+
+model QuizAttempt {
+  id         String    @id @default(cuid())
+  quizId     String    @map("quiz_id")
+  studentId  String    @map("student_id")
+  startedAt  DateTime  @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  score      Float?
+  maxScore   Float?    @map("max_score")
+  pendingEssay Boolean @default(false) @map("pending_essay")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  String?   @map("deleted_by")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  quiz     Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student  User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers  QuizAnswer[]
+
+  @@index([quizId, studentId])
+  @@index([deletedAt])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id                String   @id @default(cuid())
+  attemptId         String   @map("attempt_id")
+  questionId        String   @map("question_id")
+  selectedOptionIds String[] @default([]) @map("selected_option_ids")
+  value             String?
+  isCorrect         Boolean? @map("is_correct")
+  pointsAwarded     Float?   @map("points_awarded")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("quiz_answers")
+}
+
+model CommunityTopic {
+  id            String    @id @default(cuid())
+  courseId      String    @map("course_id")
+  authorId      String    @map("author_id")
+  title         String
+  body          String
+  moduleId      String?   @map("module_id")
+  moduleVideoId String?   @map("module_video_id")
+  contentItemId String?   @map("content_item_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  deletedBy     String?   @map("deleted_by")
+  createdBy     String?   @map("created_by")
+  updatedBy     String?   @map("updated_by")
+
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  module      CourseModule?    @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  moduleVideo ModuleVideo?     @relation(fields: [moduleVideoId], references: [id], onDelete: SetNull)
+  contentItem ContentItem?     @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  replies     CommunityReply[]
+
+  @@index([courseId, createdAt])
+  @@index([deletedAt])
+  @@map("community_topics")
+}
+
+model CommunityReply {
+  id        String    @id @default(cuid())
+  topicId   String    @map("topic_id")
+  authorId  String    @map("author_id")
+  /// Comentário pai (respostas aninhadas estilo Reddit). Null = raiz no post.
+  parentId  String?   @map("parent_id")
+  body      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+  createdBy String?   @map("created_by")
+  updatedBy String?   @map("updated_by")
+
+  topic    CommunityTopic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent   CommunityReply? @relation("ReplyThread", fields: [parentId], references: [id], onDelete: Cascade)
+  children CommunityReply[] @relation("ReplyThread")
+
+  @@index([topicId, createdAt])
+  @@index([topicId, parentId, createdAt])
+  @@index([deletedAt])
+  @@map("community_replies")
+}
+
+enum NotificationType {
+  COURSE_MODULE_ADDED
+  COURSE_LESSON_ADDED
+  COURSE_ACTIVITY_ADDED
+  TEACHER_ASSIGNED
+}
+
+/// Notificações in-app — apenas usuários com alocação em instituição (fora AVA Aberto).
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String
+  /// Rota relativa no app web (ex.: /aluno/cursos/xyz).
+  link      String?
+  courseId  String?          @map("course_id")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+  createdBy String?          @map("created_by")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([type])
+  @@map("notifications")
+}
+
+/// Progresso de aula (vídeo) por aluno — fonte da verdade no servidor.
+model LessonProgress {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  moduleVideoId   String    @map("module_video_id")
+  courseId        String    @map("course_id")
+  /// Última posição reportada pelo player (segundos).
+  lastPositionSec Float     @default(0) @map("last_position_sec")
+  /// Preenchido quando o aluno atinge ~90% da duração.
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleVideo ModuleVideo @relation(fields: [moduleVideoId], references: [id], onDelete: Cascade)
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleVideoId])
+  @@index([userId, courseId])
+  @@index([courseId, completedAt])
+  @@index([moduleVideoId])
+  @@map("lesson_progress")
+}
+
+/// Certificado de conclusão de curso (PDF gerado uma vez).
+model Certificate {
+  id        String   @id @default(cuid())
+  /// Código público de verificação (ex.: AVA-AB12-CD34).
+  code      String   @unique
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+  issuedAt  DateTime @default(now()) @map("issued_at")
+  /// Caminho relativo do PDF no disco (ex.: {id}.pdf).
+  fileKey   String   @map("file_key")
+  studentName String @map("student_name")
+  courseTitle String @map("course_title")
+  /// Snapshot da carga horária (horas) no momento da emissão.
+  workloadHours Int  @default(0) @map("workload_hours")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([issuedAt])
+  @@map("certificates")
+}
+
+

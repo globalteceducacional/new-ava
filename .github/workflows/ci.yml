@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  lint-typecheck-test-build:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    # Suite e2e (media + BullMQ) pode levar vários minutos
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ava
+          POSTGRES_PASSWORD: ava_dev_password
+          POSTGRES_DB: ava
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ava -d ava"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # Não usar NODE_ENV=production — JWT_SECRET curto quebraria resolveJwtSecret
+      CI: 'true'
+      HUSKY: '0'
+      DATABASE_URL: postgresql://ava:ava_dev_password@localhost:5432/ava?schema=public
+      DIRECT_URL: postgresql://ava:ava_dev_password@localhost:5432/ava?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-secret-at-least-32-chars!!
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      SEED_PASSWORD: '123456'
+      WEB_ORIGIN: http://localhost:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      MEDIA_TRANSCODE_CONCURRENCY: '1'
+      CERTIFICATES_DIR: /tmp/ava-certificates
+      MINIO_ENDPOINT: localhost
+      MINIO_PORT: '9000'
+      MINIO_ACCESS_KEY: ava_minio
+      MINIO_SECRET_KEY: ava_minio_secret
+      MINIO_BUCKET: ava-media
+      MINIO_USE_SSL: 'false'
+      MINIO_ROOT_USER: ava_minio
+      MINIO_ROOT_PASSWORD: ava_minio_secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Start MinIO
+        # GHA services não permitem `command`; MinIO precisa de `server /data`.
+        run: |
+          docker run -d --name ava-minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=ava_minio \
+            -e MINIO_ROOT_PASSWORD=ava_minio_secret \
+            minio/minio:RELEASE.2025-01-20T14-49-07Z server /data
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:9000/minio/health/live; then
+              echo "MinIO ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "MinIO failed to become healthy"
+          docker logs ava-minio || true
+          exit 1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared
+        run: npm run build -w @ava/shared
+
+      - name: Prisma generate + migrate
+        working-directory: apps/api
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Verify ffmpeg installer
+        working-directory: apps/api
+        run: |
+          node -e "const f=require('@ffmpeg-installer/ffmpeg'); console.log(f.path); require('child_process').execFileSync(f.path,['-version'],{stdio:'inherit'})"
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: API e2e tests
+        timeout-minutes: 40
+        run: npm run test:e2e:api
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate prod compose (dry-run)
+        run: docker compose -f docker-compose.prod.yml --env-file .env.prod.example config --quiet

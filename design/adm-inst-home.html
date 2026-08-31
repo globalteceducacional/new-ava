@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel · Adm. Instituição</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Instituição</div>
+        <ul class="nav-list">
+          <li><a class="active" href="adm-inst-home.html"><span class="nav-icon">▣</span> Painel</a></li>
+          <li><a href="adm-inst-vincular.html"><span class="nav-icon">⇄</span> Vincular cursos</a></li>
+          <li><a href="adm-inst-usuarios.html"><span class="nav-icon">☺</span> Usuários</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">IF</div>
+          <div><strong>Admin IFMA</strong><span>ADM_INSTITUICAO</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Instituição · IFMA</h1>
+        <div class="topbar-actions">
+          <a class="btn btn-primary btn-sm" href="adm-inst-vincular.html">Vincular curso do catálogo</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Escopo da instituição</p>
+            <h1>Painel IFMA</h1>
+            <p>Você não cria categorias nem “dona” cursos — escolhe cursos do catálogo e aloca os alunos do IFMA.</p>
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:1.5rem">
+          <div class="stat">
+            <div class="stat-label">Alunos</div>
+            <div class="stat-value">428</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Professores</div>
+            <div class="stat-value">36</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Cursos vinculados</div>
+            <div class="stat-value">4</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Matrículas ativas</div>
+            <div class="stat-value">1.2k</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Cursos vinculados ao IFMA</h2>
+            <a class="btn btn-secondary btn-sm" href="adm-inst-vincular.html">Gerenciar</a>
+          </div>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Curso (catálogo)</th>
+                  <th>Categorias</th>
+                  <th>Alunos alocados</th>
+                  <th>Desde</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Programação — Iniciante</strong></td>
+                  <td><span class="badge badge-brand">Programação</span></td>
+                  <td>428</td>
+                  <td>jan/2026</td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Desvincular</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Programação — Avançado</strong></td>
+                  <td><span class="badge badge-brand">Programação</span></td>
+                  <td>428</td>
+                  <td>mar/2026</td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Desvincular</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Matemática — Básico</strong></td>
+                  <td><span class="badge badge-brand">Matemática</span></td>
+                  <td>428</td>
+                  <td>jan/2026</td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Desvincular</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Gramática</strong></td>
+                  <td><span class="badge badge-brand">Gramática</span></td>
+                  <td>428</td>
+                  <td>mar/2026</td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Desvincular</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comunidade · Aluno</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Aluno</div>
+        <ul class="nav-list">
+          <li><a href="aluno-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a href="aluno-boletim.html"><span class="nav-icon">▤</span> Boletim</a></li>
+          <li><a class="active" href="aluno-comunidade.html"><span class="nav-icon">◎</span> Comunidade</a></li>
+          <li><a href="#"><span class="nav-icon">◉</span> Notificações</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">MS</div>
+          <div><strong>Maria Silva</strong><span>ALUNO · IFMA</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Comunidade</h1>
+        <div class="topbar-actions">
+          <div class="search">
+            <span>⌕</span>
+            <input type="search" placeholder="Buscar tópicos..." />
+          </div>
+          <a class="btn btn-primary btn-sm" href="#novo">+ Novo tópico</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Fórum entre alunos · IFMA</p>
+            <h1>Converse sobre os cursos</h1>
+            <p>Crie tópicos sobre uma aula, peça ajuda ou compartilhe opiniões. Colegas matriculados nos mesmos cursos podem responder.</p>
+          </div>
+        </div>
+
+        <div class="row" style="margin-bottom:1rem">
+          <select style="padding:0.5rem 0.75rem;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit">
+            <option>Todos os cursos</option>
+            <option selected>Programação — Iniciante</option>
+            <option>Programação — Avançado</option>
+            <option>Matemática — Básico</option>
+          </select>
+          <select style="padding:0.5rem 0.75rem;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit">
+            <option>Mais recentes</option>
+            <option>Mais respondidos</option>
+            <option>Sem resposta</option>
+          </select>
+        </div>
+
+        <div class="panel" style="margin-bottom:1.25rem">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Tópico</th>
+                  <th>Contexto</th>
+                  <th>Autor</th>
+                  <th>Respostas</th>
+                  <th>Atividade</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <a href="aluno-comunidade-topico.html"><strong>Const vs let — quando usar cada um?</strong></a>
+                    <div class="small muted">Dúvida depois da aula de variáveis</div>
+                  </td>
+                  <td>
+                    <span class="badge badge-brand">Programação — Iniciante</span>
+                    <div class="small muted" style="margin-top:0.25rem">Vídeo · Variáveis e tipos</div>
+                  </td>
+                  <td>João Lima</td>
+                  <td>5</td>
+                  <td class="small muted">há 12 min</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a href="aluno-comunidade-topico.html"><strong>Alguém tem dica de exercício extra?</strong></a>
+                    <div class="small muted">Quero praticar antes do quiz</div>
+                  </td>
+                  <td>
+                    <span class="badge badge-brand">Programação — Iniciante</span>
+                    <div class="small muted" style="margin-top:0.25rem">Módulo · Fundamentos</div>
+                  </td>
+                  <td>Ana Souza</td>
+                  <td>2</td>
+                  <td class="small muted">há 1 h</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a href="aluno-comunidade-topico.html"><strong>Minha opinião sobre o ritmo das aulas</strong></a>
+                    <div class="small muted">Acho que condicionais poderia ter mais exemplos</div>
+                  </td>
+                  <td>
+                    <span class="badge badge-brand">Programação — Iniciante</span>
+                    <div class="small muted" style="margin-top:0.25rem">Vídeo · Condicionais</div>
+                  </td>
+                  <td>Maria Silva</td>
+                  <td>8</td>
+                  <td class="small muted">ontem</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a href="aluno-comunidade-topico.html"><strong>Erro no exercício de funções do 1º grau</strong></a>
+                  </td>
+                  <td>
+                    <span class="badge badge-brand">Matemática — Básico</span>
+                    <div class="small muted" style="margin-top:0.25rem">Curso (geral)</div>
+                  </td>
+                  <td>Pedro Alves</td>
+                  <td>0</td>
+                  <td class="small muted">há 3 h</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" id="novo">
+          <div class="panel-head"><h2>Novo tópico</h2></div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="field">
+                <label for="course">Curso</label>
+                <select id="course">
+                  <option>Programação — Iniciante</option>
+                  <option>Programação — Avançado</option>
+                  <option>Matemática — Básico</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="ctx">Contexto (opcional)</label>
+                <select id="ctx">
+                  <option>Curso (geral)</option>
+                  <option selected>Vídeo · Variáveis e tipos</option>
+                  <option>Vídeo · Condicionais</option>
+                  <option>Módulo · Fundamentos</option>
+                  <option>Quiz · Check-in</option>
+                </select>
+                <div class="hint">Ex.: vincular ao vídeo que você está assistindo</div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="topic-title">Título</label>
+              <input id="topic-title" placeholder="Resuma sua dúvida ou opinião" />
+            </div>
+            <div class="field">
+              <label for="topic-body">Mensagem</label>
+              <textarea id="topic-body" rows="4" placeholder="Explique o contexto para os colegas..."></textarea>
+            </div>
+            <button class="btn btn-primary" type="button">Publicar tópico</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

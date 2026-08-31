@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vincular cursos · IFMA</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Instituição</div>
+        <ul class="nav-list">
+          <li><a href="adm-inst-home.html"><span class="nav-icon">▣</span> Painel</a></li>
+          <li><a class="active" href="adm-inst-vincular.html"><span class="nav-icon">⇄</span> Vincular cursos</a></li>
+          <li><a href="adm-inst-usuarios.html"><span class="nav-icon">☺</span> Usuários</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">IF</div>
+          <div><strong>Admin IFMA</strong><span>ADM_INSTITUICAO</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Vincular cursos do catálogo</h1>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">F05b · InstitutionCourse</p>
+            <h1>Catálogo → IFMA</h1>
+            <p>Ao vincular, alunos ativos do IFMA são matriculados automaticamente nesses cursos.</p>
+          </div>
+          <div class="search">
+            <span>⌕</span>
+            <input type="search" placeholder="Filtrar catálogo..." />
+          </div>
+        </div>
+
+        <div class="alert alert-warn" style="margin-bottom:1rem">
+          Exemplo: Matemática, Gramática e Programação já existem no site — apenas “colocados” para o IFMA.
+        </div>
+
+        <div class="panel">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Curso</th>
+                  <th>Categorias</th>
+                  <th>Status</th>
+                  <th>Já no IFMA?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td><strong>Programação — Iniciante</strong></td>
+                  <td><span class="badge badge-brand">Programação</span> <span class="badge">Lógica</span></td>
+                  <td><span class="badge badge-ok">Publicado</span></td>
+                  <td><span class="badge badge-ok">Sim</span></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td><strong>Programação — Avançado</strong></td>
+                  <td><span class="badge badge-brand">Programação</span></td>
+                  <td><span class="badge badge-ok">Publicado</span></td>
+                  <td><span class="badge badge-ok">Sim</span></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td><strong>Matemática — Básico</strong></td>
+                  <td><span class="badge badge-brand">Matemática</span></td>
+                  <td><span class="badge badge-ok">Publicado</span></td>
+                  <td><span class="badge badge-ok">Sim</span></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td><strong>Gramática</strong></td>
+                  <td><span class="badge badge-brand">Gramática</span></td>
+                  <td><span class="badge badge-ok">Publicado</span></td>
+                  <td><span class="badge badge-ok">Sim</span></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" /></td>
+                  <td><strong>Modelagem 3D — Iniciante</strong></td>
+                  <td><span class="badge badge-brand">Design</span></td>
+                  <td><span class="badge badge-ok">Publicado</span></td>
+                  <td><span class="badge">Não</span></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" /></td>
+                  <td><strong>Mecatrônica — Básico</strong></td>
+                  <td><span class="badge badge-brand">Mecatrônica</span></td>
+                  <td><span class="badge badge-warn">Rascunho</span></td>
+                  <td><span class="badge">Não</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-body" style="border-top:1px solid var(--line)">
+            <div class="row">
+              <label class="checkbox-row">
+                <input type="checkbox" checked />
+                Matricular automaticamente todos os alunos ativos do IFMA
+              </label>
+              <span class="spacer"></span>
+              <button class="btn btn-primary" type="button">Aplicar vínculos</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

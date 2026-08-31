@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "../styles/ava.css";
+
+:root {
+  --font-display: 'Sora', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+}

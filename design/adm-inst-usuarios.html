@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Usuários · IFMA</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Instituição</div>
+        <ul class="nav-list">
+          <li><a href="adm-inst-home.html"><span class="nav-icon">▣</span> Painel</a></li>
+          <li><a href="adm-inst-vincular.html"><span class="nav-icon">⇄</span> Vincular cursos</a></li>
+          <li><a class="active" href="adm-inst-usuarios.html"><span class="nav-icon">☺</span> Usuários</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">IF</div>
+          <div><strong>Admin IFMA</strong><span>ADM_INSTITUICAO</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Usuários da instituição</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-secondary btn-sm" type="button">Importar CSV</button>
+          <button class="btn btn-primary btn-sm" type="button">+ Usuário</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Membros · IFMA</h1>
+            <p>Alunos, professores e demais membros no escopo desta instituição.</p>
+          </div>
+          <div class="search">
+            <span>⌕</span>
+            <input type="search" placeholder="Nome ou e-mail..." />
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Papel</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Maria Silva</strong></td>
+                  <td>maria@ifma.edu.br</td>
+                  <td><span class="badge">ALUNO</span></td>
+                  <td><span class="badge badge-ok">Ativo</span></td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Rafael Costa</strong></td>
+                  <td>rafael@ifma.edu.br</td>
+                  <td><span class="badge badge-accent">PROFESSOR</span></td>
+                  <td><span class="badge badge-ok">Ativo</span></td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                </tr>
+                <tr>
+                  <td><strong>João Lima</strong></td>
+                  <td>joao@ifma.edu.br</td>
+                  <td><span class="badge">ALUNO</span></td>
+                  <td><span class="badge badge-danger">Inativo</span></td>
+                  <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

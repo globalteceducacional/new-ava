@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Questionário · Programação</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Aluno</div>
+        <ul class="nav-list">
+          <li><a href="aluno-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a href="aluno-boletim.html"><span class="nav-icon">▤</span> Boletim</a></li>
+          <li><a href="aluno-comunidade.html"><span class="nav-icon">◎</span> Comunidade</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">MS</div>
+          <div><strong>Maria Silva</strong><span>ALUNO</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Check-in iniciante</h1>
+        <div class="topbar-actions">
+          <span class="badge badge-accent">Tentativa 1 de 3</span>
+          <span class="badge">Tempo: 18:42</span>
+        </div>
+      </header>
+
+      <main class="content" style="max-width:720px">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Programação · com nota</p>
+            <h1>Questionário do curso</h1>
+            <p>Respostas de múltipla escolha — correção automática ao finalizar.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:1rem">
+          <div class="panel-body">
+            <div class="row" style="margin-bottom:1rem">
+              <strong>Questão 1 de 5</strong>
+              <span class="spacer"></span>
+              <span class="small muted">2 pontos</span>
+            </div>
+            <p style="color:var(--ink);font-weight:500">Qual palavra-chave declara uma constante em JavaScript moderno?</p>
+
+            <label class="quiz-option selected">
+              <input type="radio" name="q1" checked />
+              <span><strong>const</strong><br /><span class="small muted">Valor que não pode ser reatribuído</span></span>
+            </label>
+            <label class="quiz-option">
+              <input type="radio" name="q1" />
+              <span><strong>var</strong><br /><span class="small muted">Escopo de função, legado</span></span>
+            </label>
+            <label class="quiz-option">
+              <input type="radio" name="q1" />
+              <span><strong>let</strong><br /><span class="small muted">Variável reatribuível</span></span>
+            </label>
+            <label class="quiz-option">
+              <input type="radio" name="q1" />
+              <span><strong>static</strong><br /><span class="small muted">Conceito de outra linguagem/contexto</span></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="row">
+          <a class="btn btn-secondary" href="aluno-curso.html">Salvar e sair</a>
+          <span class="spacer"></span>
+          <button class="btn btn-ghost" type="button">Anterior</button>
+          <button class="btn btn-primary" type="button">Próxima</button>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

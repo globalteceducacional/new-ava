@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atividade · Programação</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Aluno</div>
+        <ul class="nav-list">
+          <li><a href="aluno-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a href="aluno-boletim.html"><span class="nav-icon">▤</span> Boletim</a></li>
+          <li><a href="aluno-comunidade.html"><span class="nav-icon">◎</span> Comunidade</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">MS</div>
+          <div><strong>Maria Silva</strong><span>ALUNO</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Exercício prático</h1>
+        <div class="topbar-actions">
+          <span class="badge badge-warn">Prazo: 10 ago 2026</span>
+        </div>
+      </header>
+
+      <main class="content" style="max-width:760px">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Programação · Entrega</p>
+            <h1>Declare e use três variáveis</h1>
+            <p>Envie um arquivo (.js / .txt / .zip) e um comentário breve sobre a solução.</p>
+          </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-bottom:1rem">
+          Rubrica: clareza do código (40%), funcionamento (40%), comentários (20%).
+        </div>
+
+        <div class="panel">
+          <div class="panel-body">
+            <div class="field">
+              <label for="comment">Comentário da entrega</label>
+              <textarea id="comment" rows="4" placeholder="Explique o que você fez..."></textarea>
+            </div>
+            <div class="field">
+              <label for="file">Arquivo</label>
+              <input id="file" type="file" />
+              <div class="hint">Máx. 10 MB · MIME validado no servidor</div>
+            </div>
+            <div class="row">
+              <a class="btn btn-secondary" href="aluno-curso.html">Cancelar</a>
+              <button class="btn btn-primary" type="button">Enviar atividade</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

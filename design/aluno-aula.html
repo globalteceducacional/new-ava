@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aula · Variáveis e tipos</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Aluno</div>
+        <ul class="nav-list">
+          <li><a href="aluno-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a href="aluno-boletim.html"><span class="nav-icon">▤</span> Boletim</a></li>
+          <li><a href="aluno-comunidade.html"><span class="nav-icon">◎</span> Comunidade</a></li>
+          <li><a href="#"><span class="nav-icon">◉</span> Notificações</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">MS</div>
+          <div><strong>Maria Silva</strong><span>ALUNO · IFMA</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">
+          <a class="crumb-link" href="aluno-curso.html" title="Ir para a página do curso">Programação — Iniciante</a>
+        </h1>
+        <div class="topbar-actions">
+          <a class="btn btn-ghost btn-sm" href="aluno-curso.html">Voltar ao curso</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="lesson-layout">
+          <div class="stack">
+            <!-- Título + descrição curta ACIMA do player -->
+            <header class="lesson-intro">
+              <div class="row" style="margin-bottom:0.5rem">
+                <span class="badge badge-brand">Vídeo</span>
+                <span class="badge badge-ok">READY</span>
+                <span class="spacer"></span>
+                <span class="small muted">Aula 03 · playlist do módulo</span>
+              </div>
+              <h2 class="lesson-title">Variáveis e tipos primitivos</h2>
+              <p class="lesson-desc">Declaração de variáveis, tipagem básica e boas práticas de nomenclatura — o essencial antes de condicionais.</p>
+            </header>
+
+            <div class="player">
+              <div class="player-fake">
+                <div class="play-btn">▶</div>
+                <div>Variáveis e tipos — aula 03</div>
+                <p class="small" style="color:rgba(255,255,255,0.6);margin:0.35rem 0 0">Stream HLS autenticado · servidor próprio</p>
+              </div>
+              <div class="player-bar">
+                <span>12:04</span>
+                <div class="scrub"><i></i></div>
+                <span>31:20</span>
+                <span>720p</span>
+              </div>
+            </div>
+
+            <div class="row playlist-nav">
+              <a class="btn btn-secondary" href="aluno-aula.html">← Anterior</a>
+              <div class="playlist-nav-meta">
+                <span class="small muted">Vídeo 3 de 5 · este módulo</span>
+              </div>
+              <a class="btn btn-primary" href="aluno-aula-next.html">Próximo vídeo →</a>
+            </div>
+
+            <div class="alert alert-info">
+              Dúvida ou opinião sobre esta aula?
+              <a href="aluno-comunidade.html#novo"><strong>Abrir tópico na Comunidade</strong></a>
+              (já vincula ao vídeo · Variáveis e tipos).
+            </div>
+
+            <!-- Materiais extras vinculados a ESTE vídeo (definidos na criação do módulo/playlist) -->
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Materiais desta aula</h2>
+                  <p class="small muted" style="margin:0.2rem 0 0">Anexos e avaliações do vídeo · configurados no módulo</p>
+                </div>
+              </div>
+              <ul class="module-list">
+                <li>
+                  <a href="#">
+                    <span class="item-type">PDF</span>
+                    <span class="playlist-info">
+                      <strong>Capítulo 2 — Variáveis (livro)</strong>
+                      <span class="small muted">Leitura complementar do assunto do vídeo</span>
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a href="aluno-quiz.html">
+                    <span class="item-type">QUIZ</span>
+                    <span class="playlist-info">
+                      <strong>Teste rápido: variáveis</strong>
+                      <span class="small muted">4 questões · verificar se reteve o conteúdo</span>
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#">
+                    <span class="item-type">LINK</span>
+                    <span class="playlist-info">
+                      <strong>Cheat sheet de tipos</strong>
+                      <span class="small muted">Referência rápida</span>
+                    </span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <aside class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Playlist do módulo</h2>
+                <p class="small muted" style="margin:0.2rem 0 0">Fundamentos · 5 vídeos</p>
+              </div>
+              <span class="badge">3/5</span>
+            </div>
+            <ul class="module-list playlist">
+              <li>
+                <a href="aluno-aula.html">
+                  <span class="playlist-idx">1</span>
+                  <span class="playlist-info">
+                    <strong>Boas-vindas ao curso</strong>
+                    <span class="small muted">04:12</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="aluno-aula.html">
+                  <span class="playlist-idx">2</span>
+                  <span class="playlist-info">
+                    <strong>Ambiente e ferramentas</strong>
+                    <span class="small muted">18:40</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a class="current" href="aluno-aula.html">
+                  <span class="playlist-idx playing">▶</span>
+                  <span class="playlist-info">
+                    <strong>Variáveis e tipos</strong>
+                    <span class="small muted">31:20 · assistindo · 3 materiais</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="aluno-aula-next.html">
+                  <span class="playlist-idx">4</span>
+                  <span class="playlist-info">
+                    <strong>Condicionais</strong>
+                    <span class="small muted">27:05 · 2 materiais</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="aluno-aula-next.html">
+                  <span class="playlist-idx">5</span>
+                  <span class="playlist-info">
+                    <strong>Laços de repetição</strong>
+                    <span class="small muted">22:18</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+            <div class="panel-body" style="border-top:1px solid var(--line)">
+              <a class="btn btn-secondary btn-block btn-sm" href="aluno-curso.html">Ver todo o conteúdo do curso</a>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

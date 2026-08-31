@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catálogo · Master</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">Master</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Global</div>
+        <ul class="nav-list">
+          <li><a href="adm-master-home.html"><span class="nav-icon">▣</span> Painel</a></li>
+          <li><a href="adm-master-instituicoes.html"><span class="nav-icon">⌂</span> Instituições</a></li>
+          <li><a class="active" href="adm-master-catalogo.html"><span class="nav-icon">☰</span> Catálogo</a></li>
+          <li><a href="adm-master-auditoria.html"><span class="nav-icon">◎</span> Auditoria</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">AM</div>
+          <div><strong>Adm Master</strong><span>ADM_MASTER</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Catálogo pedagógico</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-secondary btn-sm" type="button">+ Categoria</button>
+          <button class="btn btn-primary btn-sm" type="button">+ Curso</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Independentes da instituição</p>
+            <h1>Categorias e cursos</h1>
+            <p>Curso tem 1+ categorias. Instituições apenas vinculam cursos existentes.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h2>Categorias</h2></div>
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Slug</th>
+                    <th>Cursos</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Programação</strong></td>
+                    <td><code>programacao</code></td>
+                    <td>8</td>
+                    <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Matemática</strong></td>
+                    <td><code>matematica</code></td>
+                    <td>6</td>
+                    <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Gramática</strong></td>
+                    <td><code>gramatica</code></td>
+                    <td>4</td>
+                    <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Mecatrônica</strong></td>
+                    <td><code>mecatronica</code></td>
+                    <td>3</td>
+                    <td><button class="btn btn-ghost btn-sm" type="button">Editar</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h2>Cursos do catálogo</h2></div>
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Curso</th>
+                    <th>Categorias</th>
+                    <th>Instituições</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Programação — Iniciante</strong></td>
+                    <td><span class="badge badge-brand">Programação</span></td>
+                    <td>IFMA, CEUMA</td>
+                    <td><span class="badge badge-ok">Publicado</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Programação — Avançado</strong></td>
+                    <td><span class="badge badge-brand">Programação</span></td>
+                    <td>IFMA</td>
+                    <td><span class="badge badge-ok">Publicado</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Matemática — Básico</strong></td>
+                    <td><span class="badge badge-brand">Matemática</span></td>
+                    <td>IFMA</td>
+                    <td><span class="badge badge-ok">Publicado</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Gramática</strong></td>
+                    <td><span class="badge badge-brand">Gramática</span></td>
+                    <td>IFMA</td>
+                    <td><span class="badge badge-ok">Publicado</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Modelagem 3D — Iniciante</strong></td>
+                    <td><span class="badge badge-brand">Design</span></td>
+                    <td>—</td>
+                    <td><span class="badge badge-ok">Publicado</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

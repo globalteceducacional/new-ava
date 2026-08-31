@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entrar · AVA Globaltec</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <section class="auth-visual">
+      <div>
+        <div class="brand" style="margin-bottom:2.5rem">
+          <span class="brand-mark">A</span>
+          <div>
+            <div class="brand-name">AVA Globaltec</div>
+            <div class="brand-sub" style="color:rgba(255,255,255,0.55)">Ambiente Virtual de Aprendizagem</div>
+          </div>
+        </div>
+        <h1 class="auth-brand-hero">AVA<br />Globaltec</h1>
+        <p style="margin-top:1.25rem">Cursos do catálogo, vinculados à sua instituição — conteúdo e vídeo no servidor da empresa.</p>
+      </div>
+      <p class="small" style="color:rgba(255,255,255,0.55);margin:0;position:relative;z-index:1">Self-hosted · JWT · multi-instituição</p>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-card">
+        <p class="eyebrow">Acesso</p>
+        <h1>Entrar na conta</h1>
+        <p class="small">Use o e-mail institucional ou usuário cadastrado.</p>
+
+        <form action="aluno-home.html" method="get" style="margin-top:1.5rem">
+          <div class="field">
+            <label for="email">E-mail ou usuário</label>
+            <input id="email" name="email" type="text" placeholder="aluno@ifma.edu.br" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="password">Senha</label>
+            <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <div class="row" style="margin-bottom:1.25rem">
+            <label class="checkbox-row"><input type="checkbox" /> Lembrar neste dispositivo</label>
+            <span class="spacer"></span>
+            <a class="small" href="#">Esqueci a senha</a>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+        </form>
+
+        <div class="alert alert-info" style="margin-top:1.25rem">
+          Demo: após entrar, use a <a href="index.html">galeria</a> para navegar pelos perfis.
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

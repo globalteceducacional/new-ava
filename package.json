@@ -1,0 +1,43 @@
+{
+  "name": "ava",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AVA Globaltec — Ambiente Virtual de Aprendizagem",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run start:dev -w @ava/api",
+    "dev:web": "npm run dev -w @ava/web",
+    "dev:back": "npm run dev:api",
+    "dev:front": "npm run dev:web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e:api": "npm run test:e2e -w @ava/api",
+    "test:e2e:web": "npm run test:e2e -w @ava/web",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "smoke:infra": "powershell -File ./scripts/smoke-infra.ps1",
+    "backup": "powershell -File ./scripts/backup.ps1",
+    "restore-test": "powershell -File ./scripts/restore-test.ps1",
+    "compose:prod:config": "docker compose -f docker-compose.prod.yml --env-file .env.prod.example config",
+    "prepare": "husky",
+    "db:seed": "npm run db:seed -w @ava/api",
+    "db:reset": "npm run db:reset -w @ava/api",
+    "db:clean-tests": "npm run db:clean-tests -w @ava/api",
+    "db:migrate": "npm run prisma:migrate -w @ava/api"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tópico · Comunidade</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">IFMA</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Aluno</div>
+        <ul class="nav-list">
+          <li><a href="aluno-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a href="aluno-boletim.html"><span class="nav-icon">▤</span> Boletim</a></li>
+          <li><a class="active" href="aluno-comunidade.html"><span class="nav-icon">◎</span> Comunidade</a></li>
+          <li><a href="#"><span class="nav-icon">◉</span> Notificações</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">MS</div>
+          <div><strong>Maria Silva</strong><span>ALUNO · IFMA</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Tópico</h1>
+        <div class="topbar-actions">
+          <a class="btn btn-ghost btn-sm" href="aluno-comunidade.html">← Comunidade</a>
+        </div>
+      </header>
+
+      <main class="content" style="max-width:800px">
+        <div class="page-header">
+          <div>
+            <div class="row" style="margin-bottom:0.5rem">
+              <span class="badge badge-brand">Programação — Iniciante</span>
+              <span class="badge">Vídeo · Variáveis e tipos</span>
+            </div>
+            <h1>Const vs let — quando usar cada um?</h1>
+            <p class="small muted" style="margin:0">Aberto por <strong>João Lima</strong> · há 2 h · 5 respostas</p>
+          </div>
+          <a class="btn btn-secondary btn-sm" href="aluno-aula.html">Abrir aula relacionada</a>
+        </div>
+
+        <article class="panel forum-post" style="margin-bottom:1rem">
+          <div class="panel-body">
+            <div class="row" style="margin-bottom:0.75rem">
+              <div class="avatar">JL</div>
+              <div>
+                <strong>João Lima</strong>
+                <div class="small muted">ALUNO · há 2 h</div>
+              </div>
+            </div>
+            <p style="margin:0;color:var(--ink)">
+              Assisti a aula de variáveis e tipos e fiquei na dúvida: no dia a dia vocês preferem começar sempre com <code>const</code> e só mudar para <code>let</code> quando precisa reatribuir? Queria exemplos reais além do vídeo.
+            </p>
+          </div>
+        </article>
+
+        <h2 style="font-size:0.95rem;margin:0 0 0.75rem">Respostas</h2>
+
+        <article class="panel forum-post" style="margin-bottom:0.75rem">
+          <div class="panel-body">
+            <div class="row" style="margin-bottom:0.75rem">
+              <div class="avatar" style="background:#3d6b9a">AS</div>
+              <div>
+                <strong>Ana Souza</strong>
+                <div class="small muted">ALUNO · há 1 h</div>
+              </div>
+            </div>
+            <p style="margin:0;color:var(--ink)">
+              Eu faço exatamente isso: <code>const</code> por padrão. Só uso <code>let</code> em contadores de loop ou quando o valor muda de verdade. O PDF do capítulo 2 também cita isso.
+            </p>
+          </div>
+        </article>
+
+        <article class="panel forum-post" style="margin-bottom:0.75rem">
+          <div class="panel-body">
+            <div class="row" style="margin-bottom:0.75rem">
+              <div class="avatar">MS</div>
+              <div>
+                <strong>Maria Silva</strong>
+                <div class="small muted">ALUNO · há 45 min</div>
+              </div>
+            </div>
+            <p style="margin:0;color:var(--ink)">
+              Concordo com a Ana. No exercício prático eu errei porque usei <code>let</code> em tudo — o quiz de retenção da aula ajudou a fixar.
+            </p>
+          </div>
+        </article>
+
+        <article class="panel forum-post" style="margin-bottom:1.25rem">
+          <div class="panel-body">
+            <div class="row" style="margin-bottom:0.75rem">
+              <div class="avatar" style="background:var(--accent)">RC</div>
+              <div>
+                <strong>Rafael Costa</strong>
+                <div class="small muted">PROFESSOR · há 20 min</div>
+              </div>
+              <span class="spacer"></span>
+              <span class="badge badge-accent">Docente</span>
+            </div>
+            <p style="margin:0;color:var(--ink)">
+              Boa discussão. Regra prática da aula: imutabilidade por padrão. Se quiserem, trago mais um exemplo no mural do curso.
+            </p>
+          </div>
+        </article>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Sua resposta</h2></div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="reply" class="muted" style="position:absolute;width:1px;height:1px;overflow:hidden">Resposta</label>
+              <textarea id="reply" rows="4" placeholder="Escreva para ajudar o colega ou complementar a conversa..."></textarea>
+            </div>
+            <button class="btn btn-primary" type="button">Responder</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

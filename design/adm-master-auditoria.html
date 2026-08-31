@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auditoria · Master</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">Master</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Global</div>
+        <ul class="nav-list">
+          <li><a href="adm-master-home.html"><span class="nav-icon">▣</span> Painel</a></li>
+          <li><a href="adm-master-instituicoes.html"><span class="nav-icon">⌂</span> Instituições</a></li>
+          <li><a href="adm-master-catalogo.html"><span class="nav-icon">☰</span> Catálogo</a></li>
+          <li><a class="active" href="adm-master-auditoria.html"><span class="nav-icon">◎</span> Auditoria</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">AM</div>
+          <div><strong>Adm Master</strong><span>ADM_MASTER</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Auditoria</h1>
+        <div class="topbar-actions">
+          <div class="search">
+            <span>⌕</span>
+            <input type="search" placeholder="Ator, ação, entidade..." />
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Trilha de auditoria</h1>
+            <p>Login, CRUD sensível, vínculos instituição↔curso e soft-deletes.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Quando</th>
+                  <th>Ator</th>
+                  <th>Ação</th>
+                  <th>Alvo</th>
+                  <th>Instituição</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>03/08 10:41</td>
+                  <td>Admin IFMA</td>
+                  <td><span class="badge badge-brand">COURSE_LINK</span></td>
+                  <td>Gramática → IFMA</td>
+                  <td>IFMA</td>
+                </tr>
+                <tr>
+                  <td>03/08 10:12</td>
+                  <td>Rafael Costa</td>
+                  <td><span class="badge badge-accent">MEDIA_UPLOAD</span></td>
+                  <td>Programação / aula04</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>03/08 09:55</td>
+                  <td>desconhecido</td>
+                  <td><span class="badge badge-danger">LOGIN_FAIL</span></td>
+                  <td>rate-limit</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>03/08 09:20</td>
+                  <td>Adm Master</td>
+                  <td><span class="badge">INST_CREATE</span></td>
+                  <td>UEMA</td>
+                  <td>global</td>
+                </tr>
+                <tr>
+                  <td>02/08 16:03</td>
+                  <td>Admin IFMA</td>
+                  <td><span class="badge badge-warn">SOFT_DELETE</span></td>
+                  <td>usuário João Lima</td>
+                  <td>IFMA</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

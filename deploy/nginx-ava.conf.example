@@ -1,0 +1,123 @@
+# AVA — site nginx (Opção 1: nginx do host na frente)
+# ---------------------------------------------------------------------------
+# 1) Ajuste server_name e caminhos de certificado
+# 2) Copie para o host:
+#      sudo cp deploy/nginx-ava.conf.example /etc/nginx/sites-available/ava
+#      sudo ln -sf /etc/nginx/sites-available/ava /etc/nginx/sites-enabled/ava
+# 3) Teste e recarregue:
+#      sudo nginx -t && sudo systemctl reload nginx
+# 4) Certificado (se ainda não tiver):
+#      sudo certbot --nginx -d ava.seudominio.com.br
+#
+# Pré-requisito: compose behind-nginx com api:3000, web:3001, minio:9000 em 127.0.0.1
+# ---------------------------------------------------------------------------
+
+upstream ava_api {
+    server 127.0.0.1:3000;
+    keepalive 32;
+}
+
+upstream ava_web {
+    server 127.0.0.1:3001;
+    keepalive 32;
+}
+
+upstream ava_minio {
+    server 127.0.0.1:9000;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ava.seudominio.com.br;
+
+    # Depois do certbot, este bloco costuma redirecionar para HTTPS.
+    # Se ainda não tiver cert, deixe o proxy abaixo ativo só em 80 para smoke.
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ava.seudominio.com.br;
+
+    # Preenchido pelo certbot (ajuste se usar outro caminho):
+    # ssl_certificate     /etc/letsencrypt/live/ava.seudominio.com.br/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/ava.seudominio.com.br/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 1024m;
+
+    # Headers alinhados ao Caddyfile (básicos)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Auth interno para /media-cdn (equivale ao forward_auth do Caddy)
+    location = /internal/ava-cdn-auth {
+        internal;
+        proxy_pass http://ava_api/media/cdn-auth;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Forwarded-Uri $request_uri;
+        proxy_set_header Host $host;
+    }
+
+    # HLS offload: valida token na API, depois entrega bytes do MinIO
+    location /media-cdn/ {
+        auth_request /internal/ava-cdn-auth;
+        rewrite ^/media-cdn/(.*)$ /$1 break;
+        proxy_pass http://ava_minio;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+    }
+
+    # API: /api/foo → /foo no Nest
+    location /api/ {
+        proxy_pass http://ava_api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    location = /api-health {
+        proxy_pass http://ava_api/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location = /api-metrics {
+        proxy_pass http://ava_api/metrics;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    # Front Next.js
+    location / {
+        proxy_pass http://ava_web;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}

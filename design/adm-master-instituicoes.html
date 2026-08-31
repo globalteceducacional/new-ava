@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Instituições · Master</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">Master</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Global</div>
+        <ul class="nav-list">
+          <li><a href="adm-master-home.html"><span class="nav-icon">▣</span> Painel</a></li>
+          <li><a class="active" href="adm-master-instituicoes.html"><span class="nav-icon">⌂</span> Instituições</a></li>
+          <li><a href="adm-master-catalogo.html"><span class="nav-icon">☰</span> Catálogo</a></li>
+          <li><a href="adm-master-auditoria.html"><span class="nav-icon">◎</span> Auditoria</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">AM</div>
+          <div><strong>Adm Master</strong><span>ADM_MASTER</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Instituições</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-primary btn-sm" type="button">+ Instituição</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>CRUD global</h1>
+            <p>Instituições recebem cursos do catálogo — não possuem categorias.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Slug</th>
+                  <th>Cursos vinculados</th>
+                  <th>Membros</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>IFMA</strong></td>
+                  <td><code>ifma</code></td>
+                  <td>3</td>
+                  <td>464</td>
+                  <td><span class="badge badge-ok">Ativa</span></td>
+                  <td><a class="btn btn-secondary btn-sm" href="adm-inst-home.html">Abrir</a></td>
+                </tr>
+                <tr>
+                  <td><strong>CEUMA</strong></td>
+                  <td><code>ceuma</code></td>
+                  <td>5</td>
+                  <td>891</td>
+                  <td><span class="badge badge-ok">Ativa</span></td>
+                  <td><button class="btn btn-secondary btn-sm" type="button">Abrir</button></td>
+                </tr>
+                <tr>
+                  <td><strong>UEMA</strong></td>
+                  <td><code>uema</code></td>
+                  <td>0</td>
+                  <td>12</td>
+                  <td><span class="badge badge-warn">Setup</span></td>
+                  <td><button class="btn btn-secondary btn-sm" type="button">Abrir</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

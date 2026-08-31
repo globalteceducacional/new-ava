@@ -1,0 +1,28 @@
+# Override: AVA atrás do nginx do host (sem Caddy em 80/443).
+# Uso:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.prod.behind-nginx.yml \
+#     --env-file .env.prod up -d --build
+#
+# O serviço `proxy` (Caddy) NÃO sobe (profile caddy-standalone).
+# Portas só em 127.0.0.1 — nginx do host faz HTTPS + rotas.
+# Ver: deploy/nginx-ava.conf.example
+#
+# Nota: bind 127.0.0.1:3000 → uma réplica de API. Não use --scale api=2 neste modo
+# (senão a 2ª réplica falha ao publicar a porta). Para N réplicas, adicione um LB interno depois.
+
+services:
+  api:
+    ports:
+      - '127.0.0.1:${AVA_API_HOST_PORT:-3000}:3000'
+
+  web:
+    ports:
+      - '127.0.0.1:${AVA_WEB_HOST_PORT:-3001}:3001'
+
+  minio:
+    ports:
+      - '127.0.0.1:${AVA_MINIO_HOST_PORT:-9000}:9000'
+
+  proxy:
+    profiles:
+      - caddy-standalone

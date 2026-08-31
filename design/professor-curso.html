@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor · Programação — Iniciante</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">Professor</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Docente</div>
+        <ul class="nav-list">
+          <li><a href="professor-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a class="active" href="professor-curso.html"><span class="nav-icon">✎</span> Editor</a></li>
+          <li><a href="professor-correcoes.html"><span class="nav-icon">✓</span> Correções</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">RC</div>
+          <div><strong>Rafael Costa</strong><span>PROFESSOR</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Editar · Programação — Iniciante</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-secondary btn-sm" type="button">Salvar rascunho</button>
+          <button class="btn btn-primary btn-sm" type="button">Publicar</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <div class="stack">
+            <div class="panel">
+              <div class="panel-head"><h2>Dados do catálogo</h2></div>
+              <div class="panel-body">
+                <div class="alert alert-info" style="margin-bottom:1rem">
+                  Curso do catálogo. <strong>Módulo</strong> = playlist de vídeos (com materiais por aula), não nível Iniciante/Avançado.
+                </div>
+                <div class="field">
+                  <label for="title">Título do curso</label>
+                  <input id="title" value="Programação — Iniciante" />
+                </div>
+                <div class="field">
+                  <label for="cats">Categorias (1+)</label>
+                  <select id="cats" multiple size="3">
+                    <option selected>Programação</option>
+                    <option selected>Lógica</option>
+                    <option>Matemática</option>
+                    <option>Gramática</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="desc">Descrição</label>
+                  <textarea id="desc" rows="3">Fundamentos de lógica e sintaxe para quem está começando.</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Conteúdo do curso</h2>
+              <div class="row">
+                <a class="btn btn-secondary btn-sm" href="professor-modulo.html">+ Módulo (playlist)</a>
+                <button class="btn btn-ghost btn-sm" type="button">+ Item</button>
+              </div>
+            </div>
+            <ul class="module-list">
+              <li>
+                <a href="#">
+                  <span class="item-type">TXT</span>
+                  <span class="playlist-info"><strong>Boas-vindas</strong><span class="small muted">Texto do curso</span></span>
+                </a>
+              </li>
+              <li>
+                <a href="professor-modulo.html">
+                  <span class="item-type">MOD</span>
+                  <span class="playlist-info"><strong>Módulo · Fundamentos</strong><span class="small muted">Playlist · 5 vídeos · materiais por aula</span></span>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <span class="item-type">ENT</span>
+                  <span class="playlist-info"><strong>Exercício prático final</strong><span class="small muted">Entrega do curso</span></span>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <span class="item-type">QUIZ</span>
+                  <span class="playlist-info"><strong>Avaliação geral</strong><span class="small muted">Com nota</span></span>
+                </a>
+              </li>
+            </ul>
+            <div class="panel-body" style="border-top:1px solid var(--line)">
+              <p class="small muted" style="margin:0">No módulo você sobe cada vídeo com título, descrição e anexos (PDF, quiz…) que o aluno vê na tela da aula.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

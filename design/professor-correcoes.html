@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Correções · Professor</title>
+  <link rel="stylesheet" href="css/ava.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">A</span>
+        <div>
+          <div class="brand-name">AVA Globaltec</div>
+          <div class="brand-sub">Professor</div>
+        </div>
+      </a>
+      <nav>
+        <div class="nav-section-label">Docente</div>
+        <ul class="nav-list">
+          <li><a href="professor-home.html"><span class="nav-icon">▣</span> Meus cursos</a></li>
+          <li><a href="professor-curso.html"><span class="nav-icon">✎</span> Editor</a></li>
+          <li><a class="active" href="professor-correcoes.html"><span class="nav-icon">✓</span> Correções</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar">RC</div>
+          <div><strong>Rafael Costa</strong><span>PROFESSOR</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="topbar-title">Correções pendentes</h1>
+      </header>
+
+      <main class="content">
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h2>Fila de entregas</h2></div>
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Aluno</th>
+                    <th>Atividade</th>
+                    <th>Enviado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Maria Silva</strong></td>
+                    <td>Exercício prático</td>
+                    <td>02 ago</td>
+                  </tr>
+                  <tr>
+                    <td><strong>João Lima</strong></td>
+                    <td>Exercício prático</td>
+                    <td>01 ago</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ana Souza</strong></td>
+                    <td>Redação curta</td>
+                    <td>31 jul</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h2>Corrigir · Maria Silva</h2></div>
+            <div class="panel-body">
+              <p class="small muted">Entrega: <code>variaveis.js</code> · comentário do aluno abaixo.</p>
+              <div class="alert alert-info" style="margin-bottom:1rem">
+                “Usei const para PI e let para o contador.”
+              </div>
+              <div class="field">
+                <label>Rubrica</label>
+                <div class="stack" style="gap:0.5rem">
+                  <div class="row"><span>Clareza (40%)</span><span class="spacer"></span><input type="number" min="0" max="10" value="8" style="width:4.5rem;padding:0.4rem" /></div>
+                  <div class="row"><span>Funcionamento (40%)</span><span class="spacer"></span><input type="number" min="0" max="10" value="9" style="width:4.5rem;padding:0.4rem" /></div>
+                  <div class="row"><span>Comentários (20%)</span><span class="spacer"></span><input type="number" min="0" max="10" value="8" style="width:4.5rem;padding:0.4rem" /></div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="fb">Feedback</label>
+                <textarea id="fb" rows="3">Bom uso de const. Melhore os nomes das variáveis auxiliares.</textarea>
+              </div>
+              <button class="btn btn-primary" type="button">Publicar nota</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

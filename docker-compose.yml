@@ -1,0 +1,116 @@
+# AVA — Docker Compose (desenvolvimento)
+# Uso: docker compose up -d postgres redis minio
+#      docker compose up          # sobe tudo (inclui api + web)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ava-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ava}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ava_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ava}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-ava} -d ${POSTGRES_DB:-ava}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ava-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: ava-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ava_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ava_minio_secret}
+    ports:
+      - '${MINIO_API_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: ava-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ava}:${POSTGRES_PASSWORD:-ava_dev_password}@postgres:5432/${POSTGRES_DB:-ava}?schema=public&connection_limit=10
+      DIRECT_URL: postgresql://${POSTGRES_USER:-ava}:${POSTGRES_PASSWORD:-ava_dev_password}@postgres:5432/${POSTGRES_DB:-ava}?schema=public
+      REDIS_URL: redis://redis:6379
+      THROTTLE_TTL_MS: ${THROTTLE_TTL_MS:-60000}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-120}
+      CATALOG_CACHE_TTL_SEC: ${CATALOG_CACHE_TTL_SEC:-60}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-ava_minio}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-ava_minio_secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ava-media}
+      MINIO_USE_SSL: 'false'
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-dev-only}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages/shared:/app/packages/shared
+    profiles:
+      - full
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    container_name: ava-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3000}
+    ports:
+      - '${WEB_PORT:-3001}:3001'
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./packages/shared:/app/packages/shared
+    profiles:
+      - full
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

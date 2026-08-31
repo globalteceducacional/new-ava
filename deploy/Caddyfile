@@ -1,0 +1,67 @@
+# AVA — reverse proxy (Caddy)
+# Variáveis: AVA_DOMAIN, CADDY_ACME_EMAIL (compose).
+# localhost → HTTP only (homolog local sem DNS)
+# domínio real → HTTPS automático (Let's Encrypt) + HSTS
+#
+# Rotas:
+#   /media-cdn/*  → MinIO (HLS offload; forward_auth na API)
+#   /api/*        → Nest API (LB entre réplicas via DNS do Compose)
+#   /*            → Next.js
+
+{
+	email {$CADDY_ACME_EMAIL:ops@localhost}
+}
+
+{$AVA_DOMAIN:localhost} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# img-src inclui avatars via /api/avatars (mesmo host)
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-Server
+	}
+
+	# HLS offload: Caddy valida token na API e entrega bytes do MinIO (fora do Node).
+	# Browser pede: /media-cdn/{bucket}/{key}?token=...
+	handle /media-cdn/* {
+		forward_auth api:3000 {
+			uri /media/cdn-auth
+			copy_headers {>Authorization}
+		}
+		uri strip_prefix /media-cdn
+		reverse_proxy minio:9000
+	}
+
+	# API sob /api/* (strip /api → Nest). DNS do serviço `api` pode ter N IPs (--scale).
+	handle_path /api/* {
+		reverse_proxy api:3000 {
+			lb_policy round_robin
+			health_uri /health
+			health_interval 10s
+			health_timeout 3s
+		}
+	}
+
+	handle /api-health {
+		rewrite * /health
+		reverse_proxy api:3000 {
+			lb_policy round_robin
+		}
+	}
+
+	handle /api-metrics {
+		rewrite * /metrics
+		reverse_proxy api:3000 {
+			lb_policy round_robin
+		}
+	}
+
+	handle {
+		reverse_proxy web:3001
+	}
+}

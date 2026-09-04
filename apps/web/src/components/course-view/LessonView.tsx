@@ -245,6 +245,7 @@ export function LessonView({
   const [formKind, setFormKind] = useState<MaterialFormKind>('LINK');
   const [formRefId, setFormRefId] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const data = await apiFetch<Lesson>(`/module-videos/${videoId}`);
@@ -363,21 +364,29 @@ export function LessonView({
   async function saveLesson(e: FormEvent) {
     e.preventDefault();
     if (!lesson) return;
+    const sendingFile = file;
+    setUploadPercent(sendingFile ? 0 : null);
     const ok = await perform(
       async () => {
         await updateLesson(lesson.course.id, lesson.module.id, lesson.id, {
           title: formTitle,
           description: formDesc || null,
         });
-        if (file) {
+        if (sendingFile) {
           if (lesson.mediaAsset) await removeLessonVideo(lesson.mediaAsset.id);
-          await uploadLessonVideo(lesson.id, file);
+          await uploadLessonVideo(lesson.id, sendingFile, (pct) => setUploadPercent(pct));
         }
       },
-      file ? 'Aula salva e vídeo enviado para processamento.' : 'Aula salva.',
+      sendingFile
+        ? 'Aula salva. O vídeo está na fila de processamento.'
+        : 'Aula salva.',
       'Falha ao salvar a aula',
     );
-    if (ok) setEditOpen(false);
+    setUploadPercent(null);
+    if (ok) {
+      setEditOpen(false);
+      setFile(null);
+    }
   }
 
   async function dropVideo() {
@@ -975,9 +984,15 @@ export function LessonView({
         open={editOpen}
         title="Editar aula"
         onClose={() => setEditOpen(false)}
+        preventClose={busy}
         footer={
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditOpen(false)}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setEditOpen(false)}
+              disabled={busy}
+            >
               Cancelar
             </button>
             <button
@@ -986,12 +1001,29 @@ export function LessonView({
               className="btn btn-primary"
               disabled={busy}
             >
-              Salvar
+              {busy
+                ? file
+                  ? `Enviando${uploadPercent != null ? ` ${uploadPercent}%` : '…'}`
+                  : 'Salvando…'
+                : 'Salvar'}
             </button>
           </>
         }
       >
         <form id="lesson-view-form" onSubmit={saveLesson}>
+          {busy && file ? (
+            <div className="alert alert-info" role="status" style={{ marginBottom: '1rem' }}>
+              {uploadPercent != null && uploadPercent >= 100
+                ? 'Upload concluído. Aguardando o servidor gravar o arquivo…'
+                : `Enviando vídeo… ${uploadPercent ?? 0}% — não feche esta janela.`}
+              <div className="upload-track" aria-hidden>
+                <div
+                  className="upload-fill"
+                  style={{ width: `${uploadPercent ?? 0}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
           <div className="field">
             <label htmlFor="lv-title">Título</label>
             <input
@@ -1020,6 +1052,7 @@ export function LessonView({
               id="lv-file"
               type="file"
               accept="video/mp4,video/webm,video/quicktime"
+              disabled={busy}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
             <p className="small muted" style={{ margin: '0.35rem 0 0' }}>

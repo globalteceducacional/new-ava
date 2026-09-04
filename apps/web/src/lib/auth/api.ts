@@ -65,3 +65,58 @@ export async function apiFetch<T>(
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
+
+export type UploadProgressFn = (percent: number) => void;
+
+/**
+ * POST multipart com progresso (XHR). Mesmos cookies/401 do apiFetch.
+ * Use para vídeos grandes — fetch não expõe upload progress.
+ */
+export async function apiUpload<T>(
+  path: string,
+  body: FormData,
+  onProgress?: UploadProgressFn,
+  retried = false,
+): Promise<T> {
+  const run = () =>
+    new Promise<{ status: number; text: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${getApiBaseUrl()}${path}`);
+      xhr.withCredentials = true;
+      const token = getStoredAccessToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (ev) => {
+        if (!onProgress || !ev.lengthComputable || ev.total <= 0) return;
+        onProgress(Math.min(100, Math.round((ev.loaded / ev.total) * 100)));
+      };
+      xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+      xhr.onerror = () => reject(new ApiError('Falha de rede no envio', 0));
+      xhr.onabort = () => reject(new ApiError('Envio cancelado', 0));
+      xhr.send(body);
+    });
+
+  const { status, text } = await run();
+
+  if (status === 401 && !retried && !path.startsWith('/auth/')) {
+    const renewed = await ensureFreshAccess();
+    if (renewed) {
+      return apiUpload<T>(path, body, onProgress, true);
+    }
+    clearSession();
+  }
+
+  if (status < 200 || status >= 300) {
+    let message = `Erro ${status}`;
+    try {
+      const parsed = JSON.parse(text) as { message?: string | string[] };
+      if (Array.isArray(parsed.message)) message = parsed.message.join(', ');
+      else if (parsed.message) message = parsed.message;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(message, status);
+  }
+
+  if (status === 204 || !text) return undefined as T;
+  return JSON.parse(text) as T;
+}

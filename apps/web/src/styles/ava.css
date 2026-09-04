@@ -1425,6 +1425,19 @@ table.data tr:hover td { background: #fafcfd; }
 .alert-warn { background: var(--warn-soft); border-color: #f0d9a8; color: var(--warn); }
 .alert-danger { background: var(--danger-soft); border-color: #f3c2c2; color: var(--danger); }
 .alert-success { background: var(--ok-soft); border-color: #b7e3c6; color: var(--ok); }
+.upload-track {
+  margin-top: 0.55rem;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+.upload-fill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 99px;
+  transition: width 0.15s ease-out;
+}
 
 /* —— Barra de filtros / ações —— */
 .toolbar {

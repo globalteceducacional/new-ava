@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/auth/api';
+import { apiFetch, apiUpload, type UploadProgressFn } from '@/lib/auth/api';
 import type { VideoMaterialRow } from '@/lib/course-editor/types';
 
 /**
@@ -78,13 +78,14 @@ export function reorderLessons(courseId: string, moduleId: string, orderedIds: s
 }
 
 /** Envia o arquivo para transcodificação HLS e vincula à aula. */
-export function uploadLessonVideo(videoId: string, file: File) {
+export function uploadLessonVideo(
+  videoId: string,
+  file: File,
+  onProgress?: UploadProgressFn,
+) {
   const form = new FormData();
   form.append('file', file);
-  return apiFetch(`/media/upload?moduleVideoId=${videoId}`, {
-    method: 'POST',
-    body: form,
-  });
+  return apiUpload(`/media/upload?moduleVideoId=${videoId}`, form, onProgress);
 }
 
 /** Desvincula o vídeo atual para permitir a substituição por outro arquivo. */

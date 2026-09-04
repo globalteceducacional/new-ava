@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   PutBucketCorsCommand,
+  PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -101,8 +102,11 @@ export class MinioService implements OnModuleInit {
       return;
     }
     if (this.useCdnTokenOffload) {
-      // Mesmo origin via Caddy — não depende de CORS do MinIO.
-      this.hlsOffloadActive = true;
+      // Mesmo origin via Caddy/nginx — não depende de CORS do MinIO.
+      // O proxy entrega bytes sem assinatura S3: o bucket precisa permitir
+      // GetObject anônimo só em hls/* (o JWT continua no reverse proxy).
+      await this.ensureHlsAnonymousRead();
+      this.hlsOffloadActive = this.config.get<string>('MEDIA_HLS_OFFLOAD') !== 'false';
       return;
     }
     const corsOk = await this.ensureCors();
@@ -125,6 +129,42 @@ export class MinioService implements OnModuleInit {
     } catch {
       this.logger.log(`Criando bucket MinIO: ${this.bucket}`);
       await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+    }
+  }
+
+  /**
+   * Leitura anônima só de HLS. O nginx/Caddy bloqueia quem não tem ?token= JWT.
+   * Sem isso o proxy devolve 403 do MinIO (bucket privado) — player preto.
+   */
+  private async ensureHlsAnonymousRead(): Promise<void> {
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Sid: 'AvaHlsCdnRead',
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${this.bucket}/hls/*`],
+        },
+      ],
+    };
+    try {
+      await this.client.send(
+        new PutBucketPolicyCommand({
+          Bucket: this.bucket,
+          Policy: JSON.stringify(policy),
+        }),
+      );
+      this.logger.log(
+        `Política MinIO: GetObject anônimo em ${this.bucket}/hls/* (CDN)`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Não foi possível aplicar política HLS no MinIO: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

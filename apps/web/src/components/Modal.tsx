@@ -10,18 +10,28 @@ type ModalProps = {
   footer?: React.ReactNode;
   /** Modal mais largo (ex.: edição de quiz com perguntas). */
   wide?: boolean;
+  /** Impede ESC / clique fora / X (ex.: upload em andamento). */
+  preventClose?: boolean;
 };
 
 /** Diálogo simples com fechamento por ESC e clique no backdrop. */
-export function Modal({ title, open, onClose, children, footer, wide }: ModalProps) {
+export function Modal({
+  title,
+  open,
+  onClose,
+  children,
+  footer,
+  wide,
+  preventClose,
+}: ModalProps) {
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !preventClose) onClose();
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose, preventClose]);
 
   if (!open) return null;
 
@@ -30,7 +40,7 @@ export function Modal({ title, open, onClose, children, footer, wide }: ModalPro
       className="modal-backdrop"
       role="presentation"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (!preventClose && e.target === e.currentTarget) onClose();
       }}
     >
       <div
@@ -46,6 +56,7 @@ export function Modal({ title, open, onClose, children, footer, wide }: ModalPro
             className="btn btn-ghost btn-sm"
             onClick={onClose}
             aria-label="Fechar"
+            disabled={preventClose}
           >
             ✕
           </button>

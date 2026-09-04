@@ -70,6 +70,21 @@ type Props = {
 
 const EMPTY_QUESTION = (): QuizQuestionDraft => emptyQuizQuestion();
 
+function VideoUploadStatus(props: { percent: number | null; hasFile: boolean; busy: boolean }) {
+  if (!props.busy || !props.hasFile) return null;
+  const pct = props.percent ?? 0;
+  return (
+    <div className="alert alert-info" role="status" style={{ marginBottom: '1rem' }}>
+      {pct >= 100
+        ? 'Upload concluído. Aguardando o servidor gravar o arquivo…'
+        : `Enviando vídeo… ${pct}% — não feche esta janela.`}
+      <div className="upload-track" aria-hidden>
+        <div className="upload-fill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 /** Converte ISO para o valor de input datetime-local. */
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -570,6 +585,7 @@ function LessonsStep(props: {
   const [formUrl, setFormUrl] = useState('');
   const [formKind, setFormKind] = useState<MaterialFormKind>('LINK');
   const [formRefId, setFormRefId] = useState('');
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
 
   async function createModule(e: FormEvent) {
     e.preventDefault();
@@ -603,7 +619,11 @@ function LessonsStep(props: {
   async function createVideo(e: FormEvent) {
     e.preventDefault();
     if (!createLessonModule) return;
+    const moduleTitle = createLessonModule.title;
+    const sendingFile = file;
     props.onBusy(true);
+    props.onError(null);
+    setUploadPercent(sendingFile ? 0 : null);
     try {
       const video = await apiFetch<{ id: string }>(
         `/courses/${props.courseId}/modules/${createLessonModule.id}/videos`,
@@ -615,17 +635,15 @@ function LessonsStep(props: {
           }),
         },
       );
-      if (file) {
-        const fd = new FormData();
-        fd.append('file', file);
-        await apiFetch(`/media/upload?moduleVideoId=${video.id}`, {
-          method: 'POST',
-          body: fd,
-        });
-        props.onNotice(`Aula criada em “${createLessonModule.title}” e vídeo enviado.`);
+      if (sendingFile) {
+        props.onNotice('Enviando o vídeo… aguarde o fim do upload.');
+        await uploadLessonVideo(video.id, sendingFile, (pct) => setUploadPercent(pct));
+        props.onNotice(
+          `Aula criada em “${moduleTitle}”. O vídeo está na fila de processamento.`,
+        );
       } else {
         props.onNotice(
-          `Aula criada em “${createLessonModule.title}”. Você pode enviar o vídeo depois.`,
+          `Aula criada em “${moduleTitle}”. Você pode enviar o vídeo depois.`,
         );
       }
       setCreateLessonModule(null);
@@ -637,6 +655,7 @@ function LessonsStep(props: {
       props.onError(errorMessage(err, 'Falha ao criar aula'));
     } finally {
       props.onBusy(false);
+      setUploadPercent(null);
     }
   }
 
@@ -781,20 +800,25 @@ function LessonsStep(props: {
     e.preventDefault();
     if (!editLesson) return;
     const { moduleId, video } = editLesson;
+    const sendingFile = replaceFile;
+    setUploadPercent(sendingFile ? 0 : null);
     const ok = await perform(
       async () => {
         await updateLesson(props.courseId, moduleId, video.id, {
           title: formTitle,
           description: formDesc || null,
         });
-        if (replaceFile) {
+        if (sendingFile) {
           if (video.mediaAsset) await removeLessonVideo(video.mediaAsset.id);
-          await uploadLessonVideo(video.id, replaceFile);
+          await uploadLessonVideo(video.id, sendingFile, (pct) => setUploadPercent(pct));
         }
       },
-      replaceFile ? 'Aula atualizada e vídeo enviado para processamento.' : 'Aula atualizada.',
+      sendingFile
+        ? 'Aula atualizada. O vídeo está na fila de processamento.'
+        : 'Aula atualizada.',
       'Falha ao atualizar aula',
     );
+    setUploadPercent(null);
     if (ok) setEditLesson(null);
   }
 
@@ -1222,12 +1246,14 @@ function LessonsStep(props: {
         open={createLessonModule !== null}
         title={createLessonModule ? `Nova aula em “${createLessonModule.title}”` : 'Nova aula'}
         onClose={() => setCreateLessonModule(null)}
+        preventClose={props.busy}
         footer={
           <>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={() => setCreateLessonModule(null)}
+              disabled={props.busy}
             >
               Cancelar
             </button>
@@ -1237,12 +1263,17 @@ function LessonsStep(props: {
               className="btn btn-primary"
               disabled={props.busy}
             >
-              Salvar aula
+              {props.busy
+                ? file
+                  ? `Enviando${uploadPercent != null ? ` ${uploadPercent}%` : '…'}`
+                  : 'Salvando…'
+                : 'Salvar aula'}
             </button>
           </>
         }
       >
         <form id="create-lesson-form" onSubmit={createVideo}>
+          <VideoUploadStatus percent={uploadPercent} hasFile={Boolean(file)} busy={props.busy} />
           <p className="small muted" style={{ marginTop: 0 }}>
             Esta aula entra automaticamente no módulo selecionado na playlist.
           </p>
@@ -1270,6 +1301,7 @@ function LessonsStep(props: {
               id="new-lesson-file"
               type="file"
               accept="video/mp4,video/webm,video/quicktime"
+              disabled={props.busy}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
             <p className="hint">Opcional agora — até 1 GB. Dá para enviar depois.</p>
@@ -1425,9 +1457,15 @@ function LessonsStep(props: {
         open={editLesson !== null}
         title="Editar aula"
         onClose={() => setEditLesson(null)}
+        preventClose={props.busy}
         footer={
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditLesson(null)}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setEditLesson(null)}
+              disabled={props.busy}
+            >
               Cancelar
             </button>
             <button
@@ -1436,12 +1474,21 @@ function LessonsStep(props: {
               className="btn btn-primary"
               disabled={props.busy}
             >
-              Salvar
+              {props.busy
+                ? replaceFile
+                  ? `Enviando${uploadPercent != null ? ` ${uploadPercent}%` : '…'}`
+                  : 'Salvando…'
+                : 'Salvar'}
             </button>
           </>
         }
       >
         <form id="lesson-edit-form" onSubmit={saveLessonEdit}>
+          <VideoUploadStatus
+            percent={uploadPercent}
+            hasFile={Boolean(replaceFile)}
+            busy={props.busy}
+          />
           <div className="field">
             <label htmlFor="lesson-edit-title">Título</label>
             <input
@@ -1470,6 +1517,7 @@ function LessonsStep(props: {
               id="lesson-edit-file"
               type="file"
               accept="video/mp4,video/webm,video/quicktime"
+              disabled={props.busy}
               onChange={(e) => setReplaceFile(e.target.files?.[0] ?? null)}
             />
             <p className="hint">Até 1 GB por vídeo. O arquivo atual é substituído ao salvar.</p>

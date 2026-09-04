@@ -114,6 +114,7 @@ services:
       MINIO_USE_SSL: 'false'
       # HLS offload (Caddy /media-cdn → MinIO). Ex.: https://ava.exemplo.com.br/media-cdn
       MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL}
+      MEDIA_HLS_OFFLOAD: ${MEDIA_HLS_OFFLOAD:-true}
       MEDIA_PLAYBACK_TOKEN_TTL: ${MEDIA_PLAYBACK_TOKEN_TTL:-5m}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}

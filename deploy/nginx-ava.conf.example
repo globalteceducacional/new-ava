@@ -63,23 +63,29 @@ server {
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
-    # Auth interno para /media-cdn (equivale ao forward_auth do Caddy)
+    # Auth interno para /media-cdn (equivale ao forward_auth do Caddy).
+    # $arg_token / $request_uri vêm do pedido ORIGINAL (não do subrequest).
     location = /internal/ava-cdn-auth {
         internal;
-        proxy_pass http://ava_api/media/cdn-auth;
+        proxy_pass http://ava_api/media/cdn-auth?token=$arg_token;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Forwarded-Uri $request_uri;
+        proxy_set_header X-Original-URI $request_uri;
         proxy_set_header Host $host;
+        proxy_set_header Authorization "";
     }
 
-    # HLS offload: valida token na API, depois entrega bytes do MinIO
+    # HLS offload: valida JWT na API, depois entrega bytes do MinIO.
+    # O "?" no rewrite remove ?token= — o MinIO trata query extra como assinatura S3 e devolve 403.
+    # Host do upstream (127.0.0.1:9000), não o domínio público.
     location /media-cdn/ {
         auth_request /internal/ava-cdn-auth;
-        rewrite ^/media-cdn/(.*)$ /$1 break;
+        rewrite ^/media-cdn/(.*)$ /$1? break;
         proxy_pass http://ava_minio;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host 127.0.0.1:9000;
+        proxy_set_header Authorization "";
         proxy_set_header Connection "";
         proxy_buffering off;
     }

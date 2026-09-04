@@ -39,20 +39,25 @@ export class MediaController {
   @Get('cdn-auth')
   async cdnAuth(
     @Headers('x-forwarded-uri') forwardedUri: string | undefined,
+    @Headers('x-original-uri') originalUri: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
     @Query('token') tokenQuery: string | undefined,
     @Res() res: Response,
   ) {
+    const uri = forwardedUri || originalUri;
     let token = tokenQuery;
-    if (!token && forwardedUri) {
+    if (!token && authorization?.toLowerCase().startsWith('bearer ')) {
+      token = authorization.slice(7).trim();
+    }
+    if (!token && uri) {
       try {
         token =
-          new URL(forwardedUri, 'http://local').searchParams.get('token') ??
-          undefined;
+          new URL(uri, 'http://local').searchParams.get('token') ?? undefined;
       } catch {
         token = undefined;
       }
     }
-    const ok = await this.media.authorizeCdnRequest(forwardedUri, token);
+    const ok = await this.media.authorizeCdnRequest(uri, token);
     if (!ok) {
       res.status(401).send('Unauthorized');
       return;

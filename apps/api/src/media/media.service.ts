@@ -459,9 +459,17 @@ export class MediaService {
       return false;
     }
 
-    const prefix = `/media-cdn/${this.minio.bucket}/`;
-    if (!pathname.startsWith(prefix)) return false;
-    const objectKey = decodeURIComponent(pathname.slice(prefix.length));
+    const cdnPrefix = `/media-cdn/${this.minio.bucket}/`;
+    const minioPrefix = `/${this.minio.bucket}/`;
+    let objectKey: string;
+    if (pathname.startsWith(cdnPrefix)) {
+      objectKey = decodeURIComponent(pathname.slice(cdnPrefix.length));
+    } else if (pathname.startsWith(minioPrefix)) {
+      // nginx auth_request às vezes encaminha o path já reescrito.
+      objectKey = decodeURIComponent(pathname.slice(minioPrefix.length));
+    } else {
+      return false;
+    }
     if (!objectKey || objectKey.includes('..')) return false;
     return objectKey.startsWith(asset.hlsPrefix);
   }

@@ -28,12 +28,14 @@
 
 	# HLS offload: Caddy valida token na API e entrega bytes do MinIO (fora do Node).
 	# Browser pede: /media-cdn/{bucket}/{key}?token=...
+	# Remove ?token= antes do MinIO — query extra vira 403 no S3.
 	handle /media-cdn/* {
 		forward_auth api:3000 {
 			uri /media/cdn-auth
 			copy_headers {>Authorization}
 		}
 		uri strip_prefix /media-cdn
+		uri query -token
 		reverse_proxy minio:9000
 	}
 

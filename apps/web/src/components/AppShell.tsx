@@ -7,10 +7,10 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { allNavItems, initials, navForRole, type NavItem } from '@/lib/auth/nav';
 import { apiFetch } from '@/lib/auth/api';
 import {
-  clearSession,
   getStoredUser,
   logoutRequest,
   persistSession,
+  restoreSessionFromCookies,
   avatarUrlFor,
   type AuthUser,
 } from '@/lib/auth/session';
@@ -52,42 +52,69 @@ export function AppShell({ title, titleHref, allowGuest = false, children }: App
   }, []);
 
   useEffect(() => {
-    const stored = getStoredUser();
-    if (!stored) {
-      if (!allowGuest) {
-        clearSession();
-        router.replace('/login');
+    let cancelled = false;
+
+    async function boot() {
+      const stored = getStoredUser();
+      if (stored) {
+        if (!cancelled) {
+          setUser(stored);
+          setReady(true);
+        }
+        if (
+          (stored.role === Role.ALUNO || stored.role === Role.PROFESSOR) &&
+          stored.hasSchool === undefined
+        ) {
+          void apiFetch<{ hasSchool: boolean }>('/courses/me/has-school')
+            .then(({ hasSchool }) => {
+              if (cancelled) return;
+              const next = { ...stored, hasSchool };
+              persistSession(null, next);
+              setUser(next);
+            })
+            .catch(() => undefined);
+        }
         return;
       }
-      setUser(null);
-      setReady(true);
-      return;
-    }
-    setUser(stored);
-    setReady(true);
 
-    if (
-      (stored.role === Role.ALUNO || stored.role === Role.PROFESSOR) &&
-      stored.hasSchool === undefined
-    ) {
-      void apiFetch<{ hasSchool: boolean }>('/courses/me/has-school')
-        .then(({ hasSchool }) => {
-          const next = { ...stored, hasSchool };
-          persistSession(null, next);
-          setUser(next);
-        })
-        .catch(() => undefined);
+      if (allowGuest) {
+        if (!cancelled) {
+          setUser(null);
+          setReady(true);
+        }
+        return;
+      }
+
+      const restored = await restoreSessionFromCookies();
+      if (cancelled) return;
+      if (restored) {
+        persistSession(null, restored);
+        setUser(restored);
+        setReady(true);
+        return;
+      }
+
+      await logoutRequest();
+      if (!cancelled) router.replace('/login');
     }
+
+    void boot();
+    return () => {
+      cancelled = true;
+    };
   }, [router, pathname, allowGuest]);
 
   useEffect(() => {
     function onSessionUpdated() {
       const stored = getStoredUser();
       setUser(stored);
+      if (!stored && !allowGuest) {
+        router.replace('/login');
+      }
     }
     window.addEventListener('ava-session-updated', onSessionUpdated);
     return () => window.removeEventListener('ava-session-updated', onSessionUpdated);
-  }, []);
+  }, [allowGuest, router]);
 
   async function onLogout() {
     await logoutRequest();

@@ -95,24 +95,28 @@ export class AuthController {
     return { user };
   }
 
-  private setRefreshCookie(res: Response, token: string): void {
+  private cookieBase() {
     const isProd = this.config.get('NODE_ENV') === 'production';
-    const days = Number(this.config.get('JWT_REFRESH_DAYS') ?? 7);
-    res.cookie(this.authService.refreshCookieName, token, {
+    return {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
-      path: '/auth',
+      sameSite: 'strict' as const,
+    };
+  }
+
+  private setRefreshCookie(res: Response, token: string): void {
+    const days = Number(this.config.get('JWT_REFRESH_DAYS') ?? 7);
+    // path `/` — atrás do nginx o browser chama `/api/auth/refresh`, não `/auth/...`.
+    res.cookie(this.authService.refreshCookieName, token, {
+      ...this.cookieBase(),
+      path: '/',
       maxAge: days * 24 * 60 * 60 * 1000,
     });
   }
 
   private setAccessCookie(res: Response, token: string): void {
-    const isProd = this.config.get('NODE_ENV') === 'production';
     res.cookie(ACCESS_COOKIE, token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
+      ...this.cookieBase(),
       path: '/',
       maxAge: accessTokenMaxAgeMs(this.config),
     });
@@ -120,38 +124,25 @@ export class AuthController {
 
   /** Cookies de navegação do Next — mesmos flags do access; o JS não consegue forjar HttpOnly. */
   private setUiCookies(res: Response, role: string): void {
-    const isProd = this.config.get('NODE_ENV') === 'production';
     const days = Number(this.config.get('JWT_REFRESH_DAYS') ?? 7);
     const maxAge = days * 24 * 60 * 60 * 1000;
-    const flags = {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict' as const,
-      path: '/',
-      maxAge,
-    };
+    const flags = { ...this.cookieBase(), path: '/', maxAge };
     res.cookie(UI_SESSION_COOKIE, '1', flags);
     res.cookie(UI_ROLE_COOKIE, role, flags);
   }
 
   private clearRefreshCookie(res: Response): void {
-    res.clearCookie(this.authService.refreshCookieName, {
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/auth',
-    });
+    const base = this.cookieBase();
+    res.clearCookie(this.authService.refreshCookieName, { ...base, path: '/' });
+    res.clearCookie(this.authService.refreshCookieName, { ...base, path: '/auth' });
   }
 
   private clearAccessCookie(res: Response): void {
-    res.clearCookie(ACCESS_COOKIE, {
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/',
-    });
+    res.clearCookie(ACCESS_COOKIE, { ...this.cookieBase(), path: '/' });
   }
 
   private clearUiCookies(res: Response): void {
-    const base = { httpOnly: true, sameSite: 'strict' as const, path: '/' };
+    const base = { ...this.cookieBase(), path: '/' };
     res.clearCookie(UI_SESSION_COOKIE, base);
     res.clearCookie(UI_ROLE_COOKIE, base);
   }

@@ -1,4 +1,4 @@
-import { clearSession, getApiBaseUrl, getStoredAccessToken, refreshAccessToken } from './session';
+import { getApiBaseUrl, getStoredAccessToken, logoutRequest, refreshAccessToken } from './session';
 
 export class ApiError extends Error {
   constructor(
@@ -37,19 +37,24 @@ export async function apiFetch<T>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...init,
-    headers,
-    credentials: 'include',
-  });
-
-  if (res.status === 401 && !retried && !path.startsWith('/auth/')) {
-    const renewed = await ensureFreshAccess();
-    if (renewed) {
-      return apiFetch<T>(path, init, true);
-    }
-    clearSession();
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...init,
+      headers,
+      credentials: 'include',
+    });
+  } catch {
+    throw new ApiError('Falha de rede', 0);
   }
+
+    if (res.status === 401 && !retried && !path.startsWith('/auth/')) {
+      const renewed = await ensureFreshAccess();
+      if (renewed) {
+        return apiFetch<T>(path, init, true);
+      }
+      await logoutRequest();
+    }
 
   if (!res.ok) {
     let message = `Erro ${res.status}`;
@@ -108,7 +113,7 @@ export async function apiUpload<T>(
     if (renewed) {
       return apiUpload<T>(path, body, onProgress, true);
     }
-    clearSession();
+    await logoutRequest();
   }
 
   if (status < 200 || status >= 300) {

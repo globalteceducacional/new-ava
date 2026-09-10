@@ -51,16 +51,11 @@ export function getStoredUser(): AuthUser | null {
 }
 
 export function persistSession(accessToken: string | null, user: AuthUser): void {
-  // Access vai no cookie HttpOnly da API; remove cópia XSS-sensível se existir.
   localStorage.removeItem(ACCESS_KEY);
   if (accessToken) {
-    // Mantém só em memória de transição via evento; não grava token.
     void accessToken;
   }
   localStorage.setItem(USER_KEY, JSON.stringify(user));
-  // Apaga cópias antigas não-HttpOnly para o middleware só ver os cookies da API.
-  document.cookie = `${SESSION_COOKIE}=; path=/; Max-Age=0`;
-  document.cookie = `${ROLE_COOKIE}=; path=/; Max-Age=0`;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ava-session-updated'));
   }
@@ -69,9 +64,11 @@ export function persistSession(accessToken: string | null, user: AuthUser): void
 export function clearSession(): void {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(USER_KEY);
-  // Remove cópias antigas (não HttpOnly) se ainda existirem no browser.
   document.cookie = `${SESSION_COOKIE}=; path=/; Max-Age=0`;
   document.cookie = `${ROLE_COOKIE}=; path=/; Max-Age=0`;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ava-session-updated'));
+  }
 }
 
 export function homePathForRole(role: AuthUser['role']): string {
@@ -116,17 +113,46 @@ export async function logoutRequest(): Promise<void> {
       method: 'POST',
       credentials: 'include',
     });
+  } catch {
+    /* API fora / CORS — ainda limpa o estado local */
   } finally {
     clearSession();
   }
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
-  const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-  if (!res.ok) return null;
-  const body = (await res.json()) as { accessToken?: string };
-  return body.accessToken ?? null;
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { accessToken?: string };
+    return body.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAuthMe(): Promise<AuthUser | null> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/me`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { user?: AuthUser };
+    return body.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Recupera o usuário pelos cookies HttpOnly (sem depender do localStorage). */
+export async function restoreSessionFromCookies(): Promise<AuthUser | null> {
+  const first = await fetchAuthMe();
+  if (first) return first;
+  const renewed = await refreshAccessToken();
+  if (!renewed) return null;
+  return fetchAuthMe();
 }

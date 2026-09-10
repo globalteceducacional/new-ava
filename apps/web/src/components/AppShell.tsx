@@ -109,7 +109,7 @@ export function AppShell({ title, titleHref, allowGuest = false, children }: App
       .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
       .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
   const notifyEnabled =
-    Boolean(user) &&
+    user != null &&
     (user.role === Role.ALUNO || user.role === Role.PROFESSOR) &&
     Boolean(user.hasSchool);
 

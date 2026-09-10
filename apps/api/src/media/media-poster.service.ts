@@ -19,6 +19,7 @@ export class MediaPosterService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) return;
     void this.backfillMissing().catch((err) => {
       this.logger.warn(
         `Backfill de posters falhou: ${err instanceof Error ? err.message : err}`,

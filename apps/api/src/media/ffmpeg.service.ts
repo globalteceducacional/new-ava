@@ -82,7 +82,7 @@ export class FfmpegService {
           outFile,
         ]);
       }
-      return fs.readFile(outFile);
+      return await fs.readFile(outFile);
     } finally {
       await fs.rm(outDir, { recursive: true, force: true }).catch(() => undefined);
     }

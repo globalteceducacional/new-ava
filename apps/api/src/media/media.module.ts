@@ -7,6 +7,7 @@ import { CourseCoverManageController, CourseCoversPublicController } from './cou
 import { FfmpegService } from './ffmpeg.service';
 import { MediaController } from './media.controller';
 import { MEDIA_TRANSCODE_QUEUE, MediaProcessor } from './media.processor';
+import { MediaPosterService } from './media-poster.service';
 import { MediaService } from './media.service';
 import { MinioService } from './minio.service';
 import { ModuleVideosController } from './module-videos.controller';
@@ -49,6 +50,7 @@ function redisConnection(url: string) {
   providers: [
     MinioService,
     FfmpegService,
+    MediaPosterService,
     MediaService,
     MediaProcessor,
     ModuleVideosService,

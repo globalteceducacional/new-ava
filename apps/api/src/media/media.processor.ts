@@ -8,6 +8,7 @@ import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { FfmpegService } from './ffmpeg.service';
 import { rememberHlsDuration } from './hls-duration';
+import { MediaPosterService } from './media-poster.service';
 import { clearMediaProgress, setMediaProgress } from './media-progress.store';
 import { MinioService } from './minio.service';
 
@@ -25,6 +26,7 @@ export class MediaProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly minio: MinioService,
     private readonly ffmpeg: FfmpegService,
+    private readonly posters: MediaPosterService,
   ) {
     super();
   }
@@ -78,9 +80,7 @@ export class MediaProcessor extends WorkerHost {
 
       let posterKey: string | null = null;
       try {
-        const posterBuf = await this.ffmpeg.extractPosterToBuffer(inputPath);
-        posterKey = `posters/${mediaAssetId}.jpg`;
-        await this.minio.putObject(posterKey, posterBuf, 'image/jpeg', posterBuf.length);
+        posterKey = await this.posters.storeFromFile(mediaAssetId, inputPath);
       } catch (posterErr) {
         this.logger.warn(
           `Poster da mídia ${mediaAssetId} falhou: ${posterErr instanceof Error ? posterErr.message : posterErr}`,

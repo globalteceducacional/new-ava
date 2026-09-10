@@ -58,9 +58,9 @@ export function persistSession(accessToken: string | null, user: AuthUser): void
     void accessToken;
   }
   localStorage.setItem(USER_KEY, JSON.stringify(user));
-  const maxAge = 60 * 60 * 24 * 7;
-  document.cookie = `${SESSION_COOKIE}=1; path=/; SameSite=Lax; max-age=${maxAge}`;
-  document.cookie = `${ROLE_COOKIE}=${encodeURIComponent(user.role)}; path=/; SameSite=Lax; max-age=${maxAge}`;
+  // Apaga cópias antigas não-HttpOnly para o middleware só ver os cookies da API.
+  document.cookie = `${SESSION_COOKIE}=; path=/; Max-Age=0`;
+  document.cookie = `${ROLE_COOKIE}=; path=/; Max-Age=0`;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ava-session-updated'));
   }
@@ -69,6 +69,7 @@ export function persistSession(accessToken: string | null, user: AuthUser): void
 export function clearSession(): void {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(USER_KEY);
+  // Remove cópias antigas (não HttpOnly) se ainda existirem no browser.
   document.cookie = `${SESSION_COOKIE}=; path=/; Max-Age=0`;
   document.cookie = `${ROLE_COOKIE}=; path=/; Max-Age=0`;
 }
@@ -83,13 +84,12 @@ export function homePathForRole(role: AuthUser['role']): string {
       return '/professor';
     case Role.ALUNO:
     default:
-      return '/aluno/cursos';
+      return '/aluno';
   }
 }
 
-/** Home do aluno: Grade Curricular se tiver escola; senão catálogo. */
+/** Home do aluno: dashboard inicial. */
 export function homePathForUser(user: AuthUser): string {
-  if (user.role === Role.ALUNO && user.hasSchool) return '/aluno/grade';
   return homePathForRole(user.role);
 }
 

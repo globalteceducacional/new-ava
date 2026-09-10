@@ -23,24 +23,21 @@ export function AlunoCursosClient() {
 
   return (
     <AppShell title="Cursos">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Catálogo</p>
-          <h1>Cursos</h1>
-          <p>
-            Catálogo para assistir quando quiser — sem inscrição. Os cursos obrigatórios da escola
-            ficam na Grade Curricular.
-          </p>
-        </div>
-      </div>
-
       {error ? <div className="alert alert-danger">{error}</div> : null}
-      {!error ? (
-        <StudentCourseGrid
-          items={items}
-          emptyMessage="Nenhum curso publicado disponível no momento."
-        />
-      ) : null}
+      <StudentCourseGrid
+        items={items}
+        emptyMessage="Nenhum curso publicado disponível no momento."
+        header={
+          <>
+            <p className="eyebrow">Catálogo</p>
+            <h1>Cursos</h1>
+            <p>
+              Catálogo para assistir quando quiser — sem inscrição. Os cursos obrigatórios da
+              escola ficam na Grade Curricular.
+            </p>
+          </>
+        }
+      />
     </AppShell>
   );
 }

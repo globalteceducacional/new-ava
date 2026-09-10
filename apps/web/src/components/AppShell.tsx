@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NotificationBell } from '@/components/NotificationBell';
-import { initials, navForRole } from '@/lib/auth/nav';
+import { allNavItems, initials, navForRole, type NavItem } from '@/lib/auth/nav';
 import { apiFetch } from '@/lib/auth/api';
 import {
   clearSession,
@@ -16,48 +16,56 @@ import {
 } from '@/lib/auth/session';
 import { Role } from '@ava/shared';
 
-const SIDEBAR_STORAGE_KEY = 'ava_sidebar_closed';
-
 type AppShellProps = {
   title: string;
-  /** Se informado, o título da topbar vira link (ex.: voltar ao curso). */
   titleHref?: string;
+  /** Página pública: mostra a barra mesmo sem sessão (ex.: verificar certificado). */
+  allowGuest?: boolean;
   children: React.ReactNode;
 };
 
-export function AppShell({ title, titleHref, children }: AppShellProps) {
+const GUEST_NAV = {
+  section: 'Visitante',
+  homeHref: '/login',
+  primary: [] as NavItem[],
+  overflow: [{ href: '/login', label: 'Entrar', icon: '→' }] as NavItem[],
+};
+
+export function AppShell({ title, titleHref, allowGuest = false, children }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [sidebarClosed, setSidebarClosed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try {
-      setSidebarClosed(localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1');
-    } catch {
-      /* ignore */
-    }
-  }, []);
+    setMenuOpen(false);
+  }, [pathname]);
 
-  function setSidebarOpen(open: boolean) {
-    setSidebarClosed(!open);
-    try {
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, open ? '0' : '1');
-    } catch {
-      /* ignore */
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
     }
-  }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
 
   useEffect(() => {
     const stored = getStoredUser();
     if (!stored) {
-      clearSession();
-      router.replace('/login');
+      if (!allowGuest) {
+        clearSession();
+        router.replace('/login');
+        return;
+      }
+      setUser(null);
+      setReady(true);
       return;
     }
     setUser(stored);
+    setReady(true);
 
-    // Sessões antigas sem hasSchool: consulta a API uma vez.
     if (
       (stored.role === Role.ALUNO || stored.role === Role.PROFESSOR) &&
       stored.hasSchool === undefined
@@ -70,12 +78,12 @@ export function AppShell({ title, titleHref, children }: AppShellProps) {
         })
         .catch(() => undefined);
     }
-  }, [router, pathname]);
+  }, [router, pathname, allowGuest]);
 
   useEffect(() => {
     function onSessionUpdated() {
       const stored = getStoredUser();
-      if (stored) setUser(stored);
+      setUser(stored);
     }
     window.addEventListener('ava-session-updated', onSessionUpdated);
     return () => window.removeEventListener('ava-session-updated', onSessionUpdated);
@@ -86,7 +94,7 @@ export function AppShell({ title, titleHref, children }: AppShellProps) {
     router.replace('/login');
   }
 
-  if (!user) {
+  if (!ready || (!user && !allowGuest)) {
     return (
       <div className="auth-panel" style={{ minHeight: '100vh' }}>
         <p className="muted">Carregando…</p>
@@ -94,129 +102,125 @@ export function AppShell({ title, titleHref, children }: AppShellProps) {
     );
   }
 
-  const nav = navForRole(user);
+  const nav = user ? navForRole(user) : GUEST_NAV;
+  const items = allNavItems(nav);
   const activeHref =
-    nav.items
+    items
       .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
       .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+  const notifyEnabled =
+    Boolean(user) &&
+    (user.role === Role.ALUNO || user.role === Role.PROFESSOR) &&
+    Boolean(user.hasSchool);
+
+  function linkClass(item: NavItem) {
+    return activeHref === item.href ? 'active' : undefined;
+  }
 
   return (
-    <div className={`app-shell${sidebarClosed ? ' is-sidebar-closed' : ''}`}>
-      <aside className="sidebar">
-        <div className="sidebar-brand-row">
-          <Link className="brand" href={nav.items[0]?.href ?? '/'}>
-            <span className="brand-mark">A</span>
-            <div>
-              <div className="brand-name">AVA Globaltec</div>
-              <div className="brand-sub">{nav.section}</div>
-            </div>
-          </Link>
-          <button
-            type="button"
-            className="sidebar-toggle"
-            aria-label="Fechar menu"
-            title="Fechar menu"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <SidebarCloseIcon />
-          </button>
-        </div>
-        <nav>
-          <div className="nav-section-label">{nav.section}</div>
-          <ul className="nav-list">
-            {nav.items.map((item) => {
-              const active = activeHref === item.href;
-              return (
+    <div className="app-shell is-top-nav">
+      <header className="top-nav">
+        <div className="top-nav-inner">
+          <div className="top-nav-start" ref={menuRef}>
+            {nav.overflow.length ? (
+              <>
+                <button
+                  type="button"
+                  className="top-nav-burger"
+                  aria-label="Mais opções"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((v) => !v)}
+                >
+                  <HamburgerIcon />
+                </button>
+                {menuOpen ? (
+                  <div className="top-nav-drawer" role="menu">
+                    <p className="top-nav-drawer-label">{nav.section}</p>
+                    <ul>
+                      {nav.overflow.map((item) => (
+                        <li key={item.href}>
+                          <Link href={item.href} className={linkClass(item)} role="menuitem">
+                            <span className="nav-icon">{item.icon}</span> {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            <Link className="brand top-nav-brand" href={nav.homeHref}>
+              <span className="brand-mark">A</span>
+              <div>
+                <div className="brand-name">AVA Globaltec</div>
+                <div className="brand-sub">{nav.section}</div>
+              </div>
+            </Link>
+          </div>
+
+          <nav className="top-nav-desktop" aria-label="Principal">
+            <ul className="top-nav-list">
+              {nav.primary.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className={active ? 'active' : undefined}>
-                    <span className="nav-icon">{item.icon}</span> {item.label}
+                  <Link href={item.href} className={linkClass(item)}>
+                    {item.label}
                   </Link>
                 </li>
-              );
-            })}
-          </ul>
-        </nav>
-        <div className="sidebar-footer">
-          <Link
-            href="/perfil"
-            className={`user-chip user-chip-link${pathname === '/perfil' || pathname.startsWith('/perfil/') ? ' is-active' : ''}`}
-            title="Editar meu perfil"
-          >
-            <div className="avatar">
-              {user.hasAvatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrlFor(user.id)} alt="" className="avatar-img" />
-              ) : (
-                initials(user.name)
-              )}
-            </div>
-            <div>
-              <strong>{user.name}</strong>
-              <span>Meu perfil · {user.role}</span>
-            </div>
-          </Link>
-        </div>
-      </aside>
+              ))}
+            </ul>
+          </nav>
 
-      <div className="main">
-        <header className="topbar">
-          <div className="topbar-start">
-            {sidebarClosed ? (
-              <button
-                type="button"
-                className="sidebar-toggle sidebar-toggle-open"
-                aria-label="Abrir menu"
-                title="Abrir menu"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <SidebarOpenIcon />
-              </button>
-            ) : null}
-            <h1 className="topbar-title">
-              {titleHref ? (
-                <Link className="crumb-link" href={titleHref} title="Voltar ao curso">
-                  {title}
+          <div className="top-nav-end">
+            {user ? (
+              <>
+                <NotificationBell enabled={notifyEnabled} />
+                <Link
+                  href="/perfil"
+                  className={`user-chip user-chip-link${pathname === '/perfil' || pathname.startsWith('/perfil/') ? ' is-active' : ''}`}
+                  title="Editar meu perfil"
+                >
+                  <div className="avatar">
+                    {user.hasAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrlFor(user.id)} alt="" className="avatar-img" />
+                    ) : (
+                      initials(user.name)
+                    )}
+                  </div>
+                  <div>
+                    <strong>{user.name}</strong>
+                    <span>Meu perfil</span>
+                  </div>
                 </Link>
-              ) : (
-                title
-              )}
-            </h1>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={onLogout}>
+                  Sair
+                </button>
+              </>
+            ) : (
+              <Link className="btn btn-secondary btn-sm" href="/login">
+                Entrar
+              </Link>
+            )}
           </div>
-          <div className="topbar-actions">
-            <NotificationBell
-              enabled={
-                (user.role === Role.ALUNO || user.role === Role.PROFESSOR) &&
-                Boolean(user.hasSchool)
-              }
-            />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onLogout}>
-              Sair
-            </button>
-          </div>
-        </header>
-        <main className="content">{children}</main>
-      </div>
+        </div>
+      </header>
+      <main className="content top-nav-content">
+        {titleHref ? (
+          <p className="top-nav-crumb">
+            <Link className="crumb-link" href={titleHref}>
+              ← {title}
+            </Link>
+          </p>
+        ) : null}
+        {children}
+      </main>
     </div>
   );
 }
 
-function SidebarCloseIcon() {
+function HamburgerIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M6 6l12 12M18 6L6 18"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SidebarOpenIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M4 7h16M4 12h16M4 17h16"
         fill="none"

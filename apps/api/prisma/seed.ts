@@ -733,6 +733,23 @@ export async function runSeed() {
   );
   await linkCourseAndEnrollStudents(ceuma.id, courseProgIni.id, roles.ALUNO.id);
 
+  // No catálogo da escola, sem matrícula automática — vira recomendação se o aluno
+  // já assistiu outro curso de Programação.
+  await prisma.institutionCourse.upsert({
+    where: {
+      institutionId_courseId: {
+        institutionId: institution.id,
+        courseId: courseProgAv.id,
+      },
+    },
+    create: {
+      institutionId: institution.id,
+      courseId: courseProgAv.id,
+      active: true,
+    },
+    update: { active: true, deletedAt: null },
+  });
+
   // Conteúdo visualizável nos dois cursos alocados
   await seedCoursePedagogy(courseProgIni.id, professor.id, 'prog');
   await seedCoursePedagogy(courseMat.id, professor.id, 'mat');

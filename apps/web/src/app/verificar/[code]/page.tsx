@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { AppShell } from '@/components/AppShell';
 import { getApiBaseUrl } from '@/lib/auth/session';
 
 type VerifyResult = {
@@ -79,7 +79,8 @@ export default function VerificarCertificadoPage() {
   }, [code]);
 
   return (
-    <main className="verify-page">
+    <AppShell allowGuest title="Verificar certificado">
+      <div className="verify-page is-in-shell">
       <div className="verify-card">
         <p className="eyebrow">AVA Globaltec</p>
         <h1>Verificar certificado</h1>
@@ -125,15 +126,13 @@ export default function VerificarCertificadoPage() {
               >
                 {downloading ? 'Baixando…' : 'Baixar PDF'}
               </button>
-              <Link className="btn btn-secondary" href="/login">
-                Entrar no AVA
-              </Link>
             </div>
           </div>
         ) : null}
 
         {!loading && !data && !error ? <p className="muted">Nenhum resultado.</p> : null}
       </div>
-    </main>
+      </div>
+    </AppShell>
   );
 }

@@ -19,6 +19,9 @@ services:
     ports:
       - '127.0.0.1:${AVA_WEB_HOST_PORT:-3001}:3001'
 
+  # Só loopback: nginx do host precisa de 9000 para /media-cdn.
+  # NUNCA troque 127.0.0.1 por 0.0.0.0 — o bucket permite GetObject em hls/*.
+  # Console 9001 permanece sem publish (só rede Docker).
   minio:
     ports:
       - '127.0.0.1:${AVA_MINIO_HOST_PORT:-9000}:9000'

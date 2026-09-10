@@ -25,7 +25,7 @@ export class MinioService implements OnModuleInit {
   readonly bucket: string;
   readonly publicBaseUrl: string | null;
   /**
-   * true = URL pública tem path (ex.: /media-cdn) → segmentos com ?token= + Caddy forward_auth.
+   * true = URL pública tem path (ex.: /media-cdn) → Caddy forward_auth + cookie.
    * false = base é o endpoint S3 → URL assinada SigV4.
    */
   readonly useCdnTokenOffload: boolean;
@@ -133,7 +133,7 @@ export class MinioService implements OnModuleInit {
   }
 
   /**
-   * Leitura anônima só de HLS. O nginx/Caddy bloqueia quem não tem ?token= JWT.
+   * Leitura anônima só de HLS. O nginx/Caddy exige cookie/JWT no reverse proxy.
    * Sem isso o proxy devolve 403 do MinIO (bucket privado) — player preto.
    */
   private async ensureHlsAnonymousRead(): Promise<void> {
@@ -276,15 +276,14 @@ export class MinioService implements OnModuleInit {
   }
 
   /**
-   * URL pública do segmento no CDN (Caddy): /media-cdn/{bucket}/{key}?token=...
+   * URL pública do segmento no CDN (Caddy): cookie HttpOnly autentica no forward_auth.
    */
-  cdnObjectUrl(key: string, token: string): string | null {
+  cdnObjectUrl(key: string): string | null {
     if (!this.publicBaseUrl || !this.useCdnTokenOffload) return null;
-    const path = `${this.publicBaseUrl}/${this.bucket}/${key}`.replace(
+    return `${this.publicBaseUrl}/${this.bucket}/${key}`.replace(
       /([^:]\/)\/+/g,
       '$1',
     );
-    return `${path}?token=${encodeURIComponent(token)}`;
   }
 
   async objectExists(key: string): Promise<boolean> {

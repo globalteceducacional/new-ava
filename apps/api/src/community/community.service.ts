@@ -9,6 +9,7 @@ import type { AuthUser } from '../auth/auth.types';
 import { softDeleteData } from '../common/soft-delete';
 import { CourseAccessService } from '../courses/course-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertCommunityLanguageClean } from './community-language.util';
 import type { CreateReplyDto, CreateTopicDto } from './dto/community.dto';
 
 /** Profundidade máxima de comentários aninhados (0 = raiz). */
@@ -118,6 +119,7 @@ export class CommunityService {
 
   async createTopic(courseId: string, dto: CreateTopicDto, user: AuthUser) {
     await this.assertCanPost(courseId, user);
+    assertCommunityLanguageClean(dto.title, dto.body);
 
     return this.prisma.communityTopic.create({
       data: {
@@ -139,6 +141,7 @@ export class CommunityService {
     });
     if (!topic) throw new NotFoundException('Publicação não encontrada');
     await this.assertCanPost(topic.courseId, user);
+    assertCommunityLanguageClean(dto.body);
 
     let parentId: string | null = dto.parentId?.trim() || null;
     if (parentId) {

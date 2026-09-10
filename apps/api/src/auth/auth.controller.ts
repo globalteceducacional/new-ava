@@ -18,7 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthUser } from './auth.types';
 import { accessTokenMaxAgeMs } from './jwt-secret.util';
-import { ACCESS_COOKIE } from './strategies/jwt.strategy';
+import { ACCESS_COOKIE, UI_ROLE_COOKIE, UI_SESSION_COOKIE } from './strategies/jwt.strategy';
 
 @Controller('auth')
 export class AuthController {
@@ -42,6 +42,7 @@ export class AuthController {
 
     this.setRefreshCookie(res, result.refreshToken);
     this.setAccessCookie(res, result.accessToken);
+    this.setUiCookies(res, result.user.role);
 
     return {
       accessToken: result.accessToken,
@@ -64,6 +65,7 @@ export class AuthController {
     });
     this.setRefreshCookie(res, result.refreshToken);
     this.setAccessCookie(res, result.accessToken);
+    this.setUiCookies(res, result.user.role);
     return { accessToken: result.accessToken };
   }
 
@@ -76,6 +78,12 @@ export class AuthController {
     await this.authService.logout(raw);
     this.clearRefreshCookie(res);
     this.clearAccessCookie(res);
+    this.clearUiCookies(res);
+    res.clearCookie('ava_media', {
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/',
+    });
     return { ok: true };
   }
 
@@ -110,6 +118,22 @@ export class AuthController {
     });
   }
 
+  /** Cookies de navegação do Next — mesmos flags do access; o JS não consegue forjar HttpOnly. */
+  private setUiCookies(res: Response, role: string): void {
+    const isProd = this.config.get('NODE_ENV') === 'production';
+    const days = Number(this.config.get('JWT_REFRESH_DAYS') ?? 7);
+    const maxAge = days * 24 * 60 * 60 * 1000;
+    const flags = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge,
+    };
+    res.cookie(UI_SESSION_COOKIE, '1', flags);
+    res.cookie(UI_ROLE_COOKIE, role, flags);
+  }
+
   private clearRefreshCookie(res: Response): void {
     res.clearCookie(this.authService.refreshCookieName, {
       httpOnly: true,
@@ -124,5 +148,11 @@ export class AuthController {
       sameSite: 'strict',
       path: '/',
     });
+  }
+
+  private clearUiCookies(res: Response): void {
+    const base = { httpOnly: true, sameSite: 'strict' as const, path: '/' };
+    res.clearCookie(UI_SESSION_COOKIE, base);
+    res.clearCookie(UI_ROLE_COOKIE, base);
   }
 }

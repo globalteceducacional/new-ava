@@ -8,6 +8,9 @@ import type { AuthUser, JwtPayload } from '../auth.types';
 import { resolveJwtSecret } from '../jwt-secret.util';
 
 export const ACCESS_COOKIE = 'ava_access';
+/** Marcadores de UI para o middleware Next (HttpOnly — não gravar no document.cookie). */
+export const UI_SESSION_COOKIE = 'ava_session';
+export const UI_ROLE_COOKIE = 'ava_role';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {

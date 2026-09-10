@@ -4,10 +4,17 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/auth/api';
+import {
+  CommunityLanguageNotice,
+  isCommunityLanguageBlocked,
+} from '@/components/community/CommunityLanguageNotice';
 
 export type CommunityCourseOption = {
   id: string;
   title: string;
+  slug?: string;
+  synopsis?: string | null;
+  topicCount?: number;
 };
 
 type Topic = {
@@ -21,17 +28,105 @@ type Topic = {
 };
 
 type Props = {
-  /** Prefixo de rota: /aluno/comunidade ou /professor/comunidade */
   basePath: string;
-  /** Carrega opções de curso para o seletor. */
   loadCourses: () => Promise<CommunityCourseOption[]>;
 };
 
-/** Feed de publicações de um curso (comunidade). */
+function normalize(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function communityHandle(c: CommunityCourseOption) {
+  const slug = (c.slug || c.title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `c/${slug || 'comunidade'}`;
+}
+
+function initial(title: string) {
+  return (title.trim()[0] || 'C').toUpperCase();
+}
+
+function Directory({
+  courses,
+  loading,
+  basePath,
+}: {
+  courses: CommunityCourseOption[];
+  loading: boolean;
+  basePath: string;
+}) {
+  const [query, setQuery] = useState('');
+  const filtered = useMemo(() => {
+    const needle = normalize(query);
+    if (!needle) return courses;
+    return courses.filter((c) =>
+      normalize(`${c.title} ${c.slug ?? ''} ${c.synopsis ?? ''}`).includes(needle),
+    );
+  }, [courses, query]);
+
+  return (
+    <>
+      <div className="page-header catalog-toolbar">
+        <div>
+          <p className="eyebrow">Descobrir</p>
+          <h1>Comunidades</h1>
+          <p>Escolha uma comunidade de curso para ler e publicar, no estilo de um fórum.</p>
+        </div>
+        <div className="community-search">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar comunidades"
+            aria-label="Buscar comunidades"
+          />
+        </div>
+      </div>
+
+      {loading ? <p className="muted">Carregando comunidades…</p> : null}
+      {!loading && filtered.length === 0 ? (
+        <div className="empty-state">
+          {query.trim()
+            ? 'Nenhuma comunidade encontrada com essa busca.'
+            : 'Você ainda não tem comunidades. Elas aparecem nos cursos em que você participa.'}
+        </div>
+      ) : null}
+
+      <ul className="community-dir">
+        {filtered.map((c) => (
+          <li key={c.id}>
+            <Link className="community-dir-card" href={`${basePath}?courseId=${c.id}`}>
+              <span className="community-dir-avatar" aria-hidden>
+                {initial(c.title)}
+              </span>
+              <span className="community-dir-body">
+                <strong>{c.title}</strong>
+                <span className="community-dir-handle">{communityHandle(c)}</span>
+                <span className="community-dir-meta muted small">
+                  {c.topicCount ?? 0} publicação{(c.topicCount ?? 0) === 1 ? '' : 'ões'}
+                </span>
+                {c.synopsis ? (
+                  <span className="community-dir-excerpt">{c.synopsis}</span>
+                ) : null}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Diretório de comunidades ou feed de um curso. */
 export function CommunityFeed({ basePath, loadCourses }: Props) {
   const search = useSearchParams();
+  const courseId = search.get('courseId') ?? '';
   const [courses, setCourses] = useState<CommunityCourseOption[]>([]);
-  const [courseId, setCourseId] = useState(search.get('courseId') ?? '');
   const [moduleVideoId] = useState(search.get('moduleVideoId') ?? '');
   const [lessonHint] = useState(search.get('lessonTitle') ?? '');
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -39,6 +134,8 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
   const [body, setBody] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [languageBlocked, setLanguageBlocked] = useState(false);
 
   const reloadTopics = useCallback(
     async (cid: string) => {
@@ -46,12 +143,11 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
         setTopics([]);
         return;
       }
-      const qs = moduleVideoId ? `?moduleVideoId=${encodeURIComponent(moduleVideoId)}` : '';
-      // Na listagem geral mostramos todos; se veio da aula, prioriza filtro mas
-      // também permite ver o feed completo trocando o select.
-      const list = await apiFetch<Topic[]>(
-        `/courses/${cid}/topics${moduleVideoId && search.get('filterLesson') === '1' ? qs : ''}`,
-      );
+      const qs =
+        moduleVideoId && search.get('filterLesson') === '1'
+          ? `?moduleVideoId=${encodeURIComponent(moduleVideoId)}`
+          : '';
+      const list = await apiFetch<Topic[]>(`/courses/${cid}/topics${qs}`);
       setTopics(list);
     },
     [moduleVideoId, search],
@@ -63,9 +159,8 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
       try {
         const opts = await loadCourses();
         setCourses(opts);
-        setCourseId((prev) => prev || opts[0]?.id || '');
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar cursos');
+        setError(e instanceof Error ? e.message : 'Erro ao carregar comunidades');
       } finally {
         setLoading(false);
       }
@@ -74,13 +169,14 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
 
   useEffect(() => {
     if (!courseId) return;
-    void reloadTopics(courseId).catch((e) =>
-      setError(e instanceof Error ? e.message : 'Erro ao carregar publicações'),
-    );
+    setTopicsLoading(true);
+    void reloadTopics(courseId)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Erro ao carregar publicações'))
+      .finally(() => setTopicsLoading(false));
   }, [courseId, reloadTopics]);
 
   const courseTitle = useMemo(
-    () => courses.find((c) => c.id === courseId)?.title ?? 'Curso',
+    () => courses.find((c) => c.id === courseId)?.title ?? 'Comunidade',
     [courses, courseId],
   );
 
@@ -101,6 +197,10 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
       setBody('');
       await reloadTopics(courseId);
     } catch (err) {
+      if (isCommunityLanguageBlocked(err)) {
+        setLanguageBlocked(true);
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Falha ao publicar');
     }
   }
@@ -110,8 +210,21 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
     return typeof r === 'string' ? r : r?.code;
   }
 
+  if (!courseId) {
+    return (
+      <>
+        {error ? <div className="alert alert-danger">{error}</div> : null}
+        <Directory courses={courses} loading={loading} basePath={basePath} />
+      </>
+    );
+  }
+
   return (
     <>
+      <CommunityLanguageNotice
+        open={languageBlocked}
+        onClose={() => setLanguageBlocked(false)}
+      />
       {error ? <div className="alert alert-danger">{error}</div> : null}
       <div className="page-header community-feed-header">
         <div>
@@ -119,23 +232,9 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
           <h1>Comunidade</h1>
           <p>Publicações e discussões do curso — tire dúvidas e converse com a turma.</p>
         </div>
-        <select
-          className="community-course-select"
-          value={courseId}
-          onChange={(e) => setCourseId(e.target.value)}
-          disabled={loading || courses.length === 0}
-          aria-label="Selecionar curso"
-        >
-          {courses.length === 0 ? (
-            <option value="">Nenhum curso</option>
-          ) : (
-            courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))
-          )}
-        </select>
+        <Link className="btn btn-secondary btn-sm" href={basePath}>
+          Todas as comunidades
+        </Link>
       </div>
 
       {moduleVideoId ? (
@@ -155,7 +254,6 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
             placeholder="Título (ex.: Dúvida sobre a aula 3)"
             required
             minLength={3}
-            disabled={!courseId}
           />
         </div>
         <div className="field">
@@ -167,17 +265,16 @@ export function CommunityFeed({ basePath, loadCourses }: Props) {
             onChange={(e) => setBody(e.target.value)}
             placeholder="Escreva sua dúvida ou comentário…"
             required
-            disabled={!courseId}
           />
         </div>
-        <button className="btn btn-primary btn-sm" type="submit" disabled={!courseId}>
+        <button className="btn btn-primary btn-sm" type="submit">
           Publicar
         </button>
       </form>
 
       <div className="community-feed">
-        {loading ? <p className="muted">Carregando…</p> : null}
-        {!loading && topics.length === 0 ? (
+        {topicsLoading ? <p className="muted">Carregando…</p> : null}
+        {!topicsLoading && topics.length === 0 ? (
           <div className="empty-state">
             Nenhuma publicação ainda. Seja o primeiro a começar a conversa.
           </div>

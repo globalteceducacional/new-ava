@@ -299,11 +299,22 @@ export class CertificatesService {
   }
 
   private publicOrigin(): string {
-    return (
-      this.config.get<string>('PUBLIC_WEB_ORIGIN') ??
-      this.config.get<string>('WEB_ORIGIN') ??
-      'http://localhost:3001'
+    const configured = firstNonEmpty(
+      this.config.get<string>('PUBLIC_WEB_ORIGIN'),
+      this.config.get<string>('WEB_ORIGIN'),
     );
+    const fromDomain = originFromDomain(this.config.get<string>('AVA_DOMAIN'));
+    const isProd = this.config.get<string>('NODE_ENV') === 'production';
+
+    if (isProd) {
+      if (configured && !isLoopbackOrigin(configured)) return configured;
+      if (fromDomain) return fromDomain;
+      throw new Error(
+        'Defina WEB_ORIGIN (https://seu-dominio) ou AVA_DOMAIN em produção — o PDF do certificado não pode usar localhost',
+      );
+    }
+
+    return configured ?? 'http://localhost:3001';
   }
 
   private toDto(cert: {
@@ -326,4 +337,36 @@ export class CertificatesService {
       verifyPath: `/verificar/${cert.code}`,
     };
   }
+}
+
+function firstNonEmpty(
+  ...values: Array<string | undefined | null>
+): string | undefined {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed.replace(/\/+$/, '');
+  }
+  return undefined;
+}
+
+function originFromDomain(domain: string | undefined): string | undefined {
+  const host = domain
+    ?.trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/+$/, '');
+  if (!host || isLoopbackHost(host)) return undefined;
+  return `https://${host}`;
+}
+
+function isLoopbackOrigin(origin: string): boolean {
+  try {
+    return isLoopbackHost(new URL(origin).hostname);
+  } catch {
+    return isLoopbackHost(origin);
+  }
+}
+
+function isLoopbackHost(host: string): boolean {
+  const h = host.trim().toLowerCase().split(':')[0];
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]';
 }

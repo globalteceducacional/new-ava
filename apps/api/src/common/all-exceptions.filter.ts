@@ -67,6 +67,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     };
 
+    if (isHttp) {
+      const body = exception.getResponse();
+      if (typeof body === 'object' && body !== null && 'code' in body) {
+        const code = (body as { code?: unknown }).code;
+        if (typeof code === 'string' && code.trim()) payload.code = code;
+      }
+    }
+
     // Nunca incluir stack na resposta HTTP
     res.status(status).json(payload);
   }

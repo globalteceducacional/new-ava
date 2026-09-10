@@ -4,6 +4,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message);
   }
@@ -52,14 +53,19 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     let message = `Erro ${res.status}`;
+    let code: string | undefined;
     try {
-      const body = (await res.json()) as { message?: string | string[] };
+      const body = (await res.json()) as {
+        message?: string | string[];
+        code?: string;
+      };
       if (Array.isArray(body.message)) message = body.message.join(', ');
       else if (body.message) message = body.message;
+      if (typeof body.code === 'string' && body.code.trim()) code = body.code;
     } catch {
       /* ignore */
     }
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, code);
   }
 
   if (res.status === 204) return undefined as T;

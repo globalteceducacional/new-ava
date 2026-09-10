@@ -128,11 +128,34 @@ describe('Media playback (e2e)', () => {
       .get(`/media/${mediaId}/playback`)
       .set(authHeader(aluno.token))
       .expect(200);
-    expect(res.body.playlistUrl).toContain(`/media/${mediaId}/hls/`);
-    expect(res.body.token).toBeTruthy();
+    expect(res.body.playlistUrl).toBe(`/media/${mediaId}/hls/index.m3u8`);
+    expect(res.body.playlistUrl).not.toContain('token=');
+    const cookies = res.headers['set-cookie'] as unknown as string[];
+    const mediaCookie = cookies.find((c) => c.startsWith('ava_media='));
+    expect(mediaCookie).toBeTruthy();
+    expect(mediaCookie!.toLowerCase()).toMatch(/httponly/);
+
+    await request(app.getHttpServer())
+      .get(res.body.playlistUrl)
+      .expect(400);
 
     const stream = await request(app.getHttpServer())
       .get(res.body.playlistUrl)
+      .set('Cookie', mediaCookie!.split(';')[0])
+      .expect(200);
+    expect(stream.text).toContain('#EXTM3U');
+    expect(stream.text).not.toContain('token=');
+  });
+
+  it('token na query (legado) ainda funciona', async () => {
+    const token = await jwt.signAsync(
+      { sub: 'x', mediaId, typ: 'media' },
+      { expiresIn: '2m' },
+    );
+    const stream = await request(app.getHttpServer())
+      .get(
+        `/media/${mediaId}/hls/index.m3u8?token=${encodeURIComponent(token)}`,
+      )
       .expect(200);
     expect(stream.text).toContain('#EXTM3U');
   });

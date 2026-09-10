@@ -6,8 +6,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { JwtService } from '@nestjs/jwt';
-import { MediaAssetStatus, RoleCode } from '@prisma/client';
+import { CourseStatus, MediaAssetStatus, RoleCode } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { randomUUID } from 'crypto';
 import { createReadStream, promises as fs } from 'fs';
 import type { AuthUser } from '../auth/auth.types';
 import { softDeleteData } from '../common/soft-delete';
@@ -18,7 +19,11 @@ import {
   MEDIA_TRANSCODE_QUEUE,
   type MediaTranscodeJob,
 } from './media.processor';
-import { ALLOWED_VIDEO_MIMES, matchesVideoMagic } from './mime.util';
+import {
+  ALLOWED_VIDEO_MIMES,
+  matchesImageMagic,
+  matchesVideoMagic,
+} from './mime.util';
 import { MinioService } from './minio.service';
 
 export type MediaPlaybackTokenPayload = {
@@ -26,6 +31,26 @@ export type MediaPlaybackTokenPayload = {
   mediaId: string;
   typ: 'media';
 };
+
+/** Cookie HttpOnly do stream HLS (mesmo host; não vai na query da playlist). */
+export const MEDIA_COOKIE = 'ava_media';
+
+export function mediaTokenFromCookieHeader(
+  header: string | undefined,
+): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(';')) {
+    const cut = part.indexOf('=');
+    if (cut < 0) continue;
+    if (part.slice(0, cut).trim() !== MEDIA_COOKIE) continue;
+    try {
+      return decodeURIComponent(part.slice(cut + 1).trim());
+    } catch {
+      return part.slice(cut + 1).trim();
+    }
+  }
+  return undefined;
+}
 
 @Injectable()
 export class MediaService {
@@ -305,7 +330,7 @@ export class MediaService {
     }
 
     const expiresIn =
-      this.config.get<string>('MEDIA_PLAYBACK_TOKEN_TTL') ?? '5m';
+      this.config.get<string>('MEDIA_PLAYBACK_TOKEN_TTL') ?? '3m';
     const token = await this.jwt.signAsync(
       {
         sub: user.id,
@@ -318,9 +343,10 @@ export class MediaService {
     return {
       mediaId: asset.id,
       status: asset.status,
-      playlistUrl: `/media/${asset.id}/hls/index.m3u8?token=${encodeURIComponent(token)}`,
+      playlistUrl: `/media/${asset.id}/hls/index.m3u8`,
       token,
       expiresIn,
+      ttlMs: this.playbackTtlMs(),
     };
   }
 
@@ -364,10 +390,10 @@ export class MediaService {
     const offload = this.minio.hlsOffloadEnabled;
     const signTtlSec = this.playbackTtlSeconds();
 
-    // Segmentos (.ts): fora do Node (presign ou CDN+token).
+    // Segmentos (.ts): fora do Node (presign ou CDN + cookie).
     if (offload && !safe.endsWith('.m3u8')) {
       if (this.minio.useCdnTokenOffload) {
-        const url = this.minio.cdnObjectUrl(key, token);
+        const url = this.minio.cdnObjectUrl(key);
         if (url) return { kind: 'redirect', url };
       } else {
         const url = await this.minio.signedPublicGetUrl(key, signTtlSec);
@@ -389,14 +415,13 @@ export class MediaService {
 
         // Playlist aninhada: continua autenticada no Nest.
         if (trimmed.endsWith('.m3u8')) {
-          const sep = trimmed.includes('?') ? '&' : '?';
-          rewritten.push(`${trimmed}${sep}token=${encodeURIComponent(token)}`);
+          rewritten.push(trimmed);
           continue;
         }
 
         const segKey = `${asset.hlsPrefix}${trimmed.replace(/^\/+/, '')}`;
         if (offload && this.minio.useCdnTokenOffload) {
-          rewritten.push(this.minio.cdnObjectUrl(segKey, token) ?? trimmed);
+          rewritten.push(this.minio.cdnObjectUrl(segKey) ?? trimmed);
         } else if (offload) {
           const signed = await this.minio.signedPublicGetUrl(
             segKey,
@@ -404,8 +429,7 @@ export class MediaService {
           );
           rewritten.push(signed ?? trimmed);
         } else {
-          const sep = trimmed.includes('?') ? '&' : '?';
-          rewritten.push(`${trimmed}${sep}token=${encodeURIComponent(token)}`);
+          rewritten.push(trimmed);
         }
       }
 
@@ -427,8 +451,8 @@ export class MediaService {
   }
 
   /**
-   * Autoriza GET no Caddy (forward_auth) para /media-cdn/{bucket}/{key}?token=...
-   * Só permite objetos sob o hlsPrefix da mídia do token.
+   * Autoriza GET no Caddy (forward_auth) para /media-cdn/{bucket}/{key}.
+   * Cookie HttpOnly ou ?token= legado.
    */
   async authorizeCdnRequest(
     forwardedUri: string | undefined,
@@ -477,7 +501,7 @@ export class MediaService {
   /** Converte MEDIA_PLAYBACK_TOKEN_TTL (ex.: 5m) em segundos para presign. */
   private playbackTtlSeconds(): number {
     const raw =
-      this.config.get<string>('MEDIA_PLAYBACK_TOKEN_TTL')?.trim() || '5m';
+      this.config.get<string>('MEDIA_PLAYBACK_TOKEN_TTL')?.trim() || '3m';
     const m = /^(\d+)\s*([smhd])$/i.exec(raw);
     if (!m) return 300;
     const n = Number(m[1]);
@@ -485,6 +509,10 @@ export class MediaService {
     const mult =
       unit === 's' ? 1 : unit === 'm' ? 60 : unit === 'h' ? 3600 : 86400;
     return Math.max(60, Math.min(n * mult, 3600));
+  }
+
+  playbackTtlMs(): number {
+    return this.playbackTtlSeconds() * 1000;
   }
 
   private async requireAsset(id: string) {
@@ -510,6 +538,126 @@ export class MediaService {
       throw new NotFoundException('Mídia não encontrada');
     }
     await this.access.assertCanView(asset.moduleVideo.module.courseId, user);
+  }
+
+  async uploadCourseCover(courseId: string, user: AuthUser, file: Express.Multer.File | undefined) {
+    await this.access.assertCanManage(courseId, user);
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Arquivo de imagem obrigatório');
+    }
+    if (file.size > COVER_MAX_BYTES) {
+      throw new BadRequestException('Imagem deve ter no máximo 5 MB');
+    }
+    const mime = (file.mimetype || '').toLowerCase();
+    if (!COVER_MIMES.has(mime) || !matchesImageMagic(file.buffer, mime)) {
+      throw new BadRequestException('Use JPEG, PNG ou WebP');
+    }
+
+    const course = await this.prisma.course.findFirst({
+      where: { id: courseId, deletedAt: null },
+      select: { id: true, coverKey: true },
+    });
+    if (!course) throw new NotFoundException('Curso não encontrado');
+
+    const ext = COVER_EXT[mime] ?? '.jpg';
+    const key = `covers/${courseId}/${randomUUID()}${ext}`;
+    await this.minio.putObject(key, file.buffer, mime, file.size);
+
+    await this.prisma.course.update({
+      where: { id: courseId },
+      data: { coverKey: key, updatedBy: user.id },
+    });
+
+    if (course.coverKey && course.coverKey !== key) {
+      try {
+        await this.minio.deleteObject(course.coverKey);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return { ok: true, hasCustomCover: true };
+  }
+
+  async removeCourseCover(courseId: string, user: AuthUser) {
+    await this.access.assertCanManage(courseId, user);
+    const course = await this.prisma.course.findFirst({
+      where: { id: courseId, deletedAt: null },
+      select: { coverKey: true },
+    });
+    if (!course) throw new NotFoundException('Curso não encontrado');
+    if (!course.coverKey) {
+      throw new BadRequestException('Nenhuma capa personalizada para remover');
+    }
+    const key = course.coverKey;
+    await this.prisma.course.update({
+      where: { id: courseId },
+      data: { coverKey: null, updatedBy: user.id },
+    });
+    try {
+      await this.minio.deleteObject(key);
+    } catch {
+      /* ignore */
+    }
+    return { ok: true, hasCustomCover: false };
+  }
+
+  /**
+   * @param publishedOnly — rota anônima: só curso PUBLISHED (rascunho não vaza capa).
+   * @param user — rota autenticada: assertCanView (editor vê DRAFT).
+   */
+  async streamCourseCover(
+    courseId: string,
+    opts: { publishedOnly: true } | { publishedOnly: false; user: AuthUser },
+  ) {
+    if (!opts.publishedOnly) {
+      await this.access.assertCanView(courseId, opts.user);
+    }
+
+    const course = await this.prisma.course.findFirst({
+      where: {
+        id: courseId,
+        deletedAt: null,
+        ...(opts.publishedOnly ? { status: CourseStatus.PUBLISHED } : {}),
+      },
+      select: { coverKey: true },
+    });
+    if (!course) throw new NotFoundException('Capa não encontrada');
+
+    const key = course.coverKey ?? (await this.resolveLessonPosterKey(courseId));
+    if (!key) throw new NotFoundException('Capa não encontrada');
+
+    const obj = await this.minio.getObjectStream(key);
+    return {
+      body: obj.body,
+      contentType: obj.contentType ?? 'image/jpeg',
+    };
+  }
+
+  /** Poster já gerado na transcodificação — nunca dispara FFmpeg neste GET público. */
+  private async resolveLessonPosterKey(courseId: string): Promise<string | null> {
+    const videos = await this.prisma.moduleVideo.findMany({
+      where: {
+        deletedAt: null,
+        module: { courseId, deletedAt: null },
+      },
+      orderBy: [{ module: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+      select: {
+        mediaAsset: {
+          select: {
+            posterKey: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    for (const video of videos) {
+      const asset = video.mediaAsset;
+      if (!asset || asset.status !== MediaAssetStatus.READY) continue;
+      if (asset.posterKey) return asset.posterKey;
+    }
+    return null;
   }
 
   serialize(asset: {
@@ -540,6 +688,14 @@ export class MediaService {
     };
   }
 }
+
+const COVER_MAX_BYTES = 5 * 1024 * 1024;
+const COVER_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const COVER_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+};
 
 function extFromName(name: string, mime: string): string {
   const fromName = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';

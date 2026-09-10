@@ -75,6 +75,17 @@ export class MediaProcessor extends WorkerHost {
         },
       );
       hlsDir = transcoded.outDir;
+
+      let posterKey: string | null = null;
+      try {
+        const posterBuf = await this.ffmpeg.extractPosterToBuffer(inputPath);
+        posterKey = `posters/${mediaAssetId}.jpg`;
+        await this.minio.putObject(posterKey, posterBuf, 'image/jpeg', posterBuf.length);
+      } catch (posterErr) {
+        this.logger.warn(
+          `Poster da mídia ${mediaAssetId} falhou: ${posterErr instanceof Error ? posterErr.message : posterErr}`,
+        );
+      }
       const hlsPrefix = `hls/${mediaAssetId}/`;
       if (transcoded.durationSec && transcoded.durationSec > 0) {
         await this.minio.putObject(
@@ -106,6 +117,7 @@ export class MediaProcessor extends WorkerHost {
           status: MediaAssetStatus.READY,
           hlsPrefix,
           errorMessage: null,
+          ...(posterKey ? { posterKey } : {}),
         },
       });
       clearMediaProgress(mediaAssetId);

@@ -1,6 +1,8 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { CourseCover } from '@/components/course-view/CourseCover';
 import type { StudentCourseCard } from '@/lib/course-view/student-courses';
 import { filterStudentCourses, studentLessonHref } from '@/lib/course-view/student-courses';
 import { getRecentCourseIds } from '@/lib/course-view/recent-courses';
@@ -8,6 +10,10 @@ import { getRecentCourseIds } from '@/lib/course-view/recent-courses';
 type Props = {
   items: StudentCourseCard[];
   emptyMessage: string;
+  /** Título/descrição à esquerda; a busca ocupa o restante da linha. */
+  header?: ReactNode;
+  searchPlaceholder?: string;
+  searchAriaLabel?: string;
   /** Rótulo do badge quando enrolled (ex.: "Obrigatório" na grade). */
   enrolledLabel?: string;
   /** Badge para cursos sem matrícula (catálogo livre). */
@@ -19,11 +25,11 @@ type Props = {
 function CourseTile({ item, badge }: { item: StudentCourseCard; badge: string }) {
   return (
     <a className="course-tile" href={studentLessonHref(item)}>
-      <div className="course-tile-art">
+      <CourseCover courseId={item.course.id} className="course-tile-art">
         <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
           {badge}
         </span>
-      </div>
+      </CourseCover>
       <div className="course-tile-body">
         <div className="small muted">
           {item.course.categories.map((c) => c.category.name).join(' · ')}
@@ -41,6 +47,9 @@ function CourseTile({ item, badge }: { item: StudentCourseCard; badge: string })
 export function StudentCourseGrid({
   items,
   emptyMessage,
+  header,
+  searchPlaceholder = 'Buscar por nome ou categoria',
+  searchAriaLabel = 'Buscar cursos',
   enrolledLabel = 'Obrigatório',
   availableLabel = 'Disponível',
   showRecent = true,
@@ -72,16 +81,27 @@ export function StudentCourseGrid({
     return item.enrolled ? enrolledLabel : availableLabel;
   }
 
+  const searchField = (
+    <div className="student-course-search">
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={searchPlaceholder}
+        aria-label={searchAriaLabel}
+      />
+    </div>
+  );
+
   return (
     <div>
-      <div className="student-course-search">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nome ou categoria"
-          aria-label="Buscar cursos"
-        />
-      </div>
+      {header ? (
+        <div className="page-header catalog-toolbar">
+          <div>{header}</div>
+          {searchField}
+        </div>
+      ) : (
+        searchField
+      )}
 
       {!filtered.length ? (
         <div className="alert alert-info">

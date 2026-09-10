@@ -247,6 +247,13 @@ export function LessonView({
   const [file, setFile] = useState<File | null>(null);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
 
+  const refreshPlayback = useCallback(async (mediaId: string) => {
+    const play = await apiFetch<{ playlistUrl: string }>(`/media/${mediaId}/playback`);
+    setPlaylistUrl((prev) =>
+      prev === play.playlistUrl ? prev : play.playlistUrl,
+    );
+  }, []);
+
   const load = useCallback(async () => {
     const data = await apiFetch<Lesson>(`/module-videos/${videoId}`);
     setLesson(data);
@@ -261,12 +268,11 @@ export function LessonView({
     setProgressTick((n) => n + 1);
     setExpandedModules({ [data.module.id]: true });
     if (data.mediaAsset?.status === 'READY') {
-      const play = await apiFetch<{ playlistUrl: string }>(`/media/${data.mediaAsset.id}/playback`);
-      setPlaylistUrl(play.playlistUrl);
+      await refreshPlayback(data.mediaAsset.id);
     } else {
       setPlaylistUrl(null);
     }
-  }, [videoId]);
+  }, [videoId, refreshPlayback]);
 
   function markCurrentLessonWatched() {
     if (!lesson) return;
@@ -318,6 +324,17 @@ export function LessonView({
     }, 2000);
     return () => window.clearInterval(timer);
   }, [lesson?.mediaAsset?.status, load]);
+
+  // Renova o cookie HLS antes do JWT de 3 min expirar (não troca a URL → player não reinicia).
+  useEffect(() => {
+    const mediaId =
+      lesson?.mediaAsset?.status === 'READY' ? lesson.mediaAsset.id : null;
+    if (!mediaId) return;
+    const timer = window.setInterval(() => {
+      void refreshPlayback(mediaId).catch(() => undefined);
+    }, 90_000);
+    return () => window.clearInterval(timer);
+  }, [lesson?.mediaAsset?.id, lesson?.mediaAsset?.status, refreshPlayback]);
 
   async function perform(action: () => Promise<void>, ok: string, fail: string) {
     setBusy(true);

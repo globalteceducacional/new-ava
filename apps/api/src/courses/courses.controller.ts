@@ -31,7 +31,12 @@ export class CoursesController {
   }
 
   @Get('mine')
-  @Roles(RoleCode.ADM_MASTER, RoleCode.PROFESSOR, RoleCode.ALUNO)
+  @Roles(
+    RoleCode.ADM_MASTER,
+    RoleCode.ADM_INSTITUICAO,
+    RoleCode.PROFESSOR,
+    RoleCode.ALUNO,
+  )
   async mine(@CurrentUser() user: AuthUser, @Query('for') forUse?: string) {
     if (user.role === RoleCode.ALUNO) {
       if (forUse === 'community') {
@@ -42,7 +47,7 @@ export class CoursesController {
     if (user.role === RoleCode.PROFESSOR) {
       return this.courses.listMineForTeacher(user.id);
     }
-    // Master: catálogo completo
+    // Master e instituição: mesmos cursos que já podem ver no catálogo.
     return this.courses.listCatalog(user);
   }
 
@@ -68,6 +73,25 @@ export class CoursesController {
   @Roles(RoleCode.ALUNO)
   curriculum(@CurrentUser() user: AuthUser) {
     return this.courses.listCurriculumForStudent(user.id);
+  }
+
+  /** Dashboard inicial do aluno (obrigatórios, recomendados, explorar). */
+  @Get('home')
+  @Roles(RoleCode.ALUNO)
+  studentHome(@CurrentUser() user: AuthUser) {
+    return this.courses.studentHome(user);
+  }
+
+  /** Diretório de comunidades (um card por curso). */
+  @Get('communities')
+  @Roles(
+    RoleCode.ADM_MASTER,
+    RoleCode.ADM_INSTITUICAO,
+    RoleCode.PROFESSOR,
+    RoleCode.ALUNO,
+  )
+  communities(@CurrentUser() user: AuthUser) {
+    return this.courses.listCommunities(user);
   }
 
   /** Indica se o usuário pertence a alguma escola (não só AVA Aberto). */

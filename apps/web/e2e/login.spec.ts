@@ -5,23 +5,25 @@ const PASSWORD = '123456';
 const profiles = [
   {
     login: 'aluno',
-    path: '/aluno/cursos',
-    nav: ['Cursos', 'Meus cursos', 'Boletim', 'Comunidade'],
+    path: '/aluno',
+    nav: ['Início', 'Comunidades', 'Certificados', 'Cursos'],
   },
   {
     login: 'professor',
     path: '/professor',
-    nav: ['Meus cursos', 'Editor', 'Correções'],
+    nav: ['Meus cursos', 'Comunidades'],
+    menu: ['Editor', 'Correções'],
   },
   {
     login: 'instituicao',
     path: '/instituicao',
-    nav: ['Painel', 'Vincular cursos', 'Usuários'],
+    nav: ['Painel', 'Comunidades'],
+    menu: ['Vincular cursos', 'Usuários'],
   },
   {
     login: 'admin',
     path: '/master',
-    nav: ['Painel', 'Instituições', 'Catálogo', 'Auditoria'],
+    nav: ['Painel', 'Catálogo', 'Comunidades', 'Instituições', 'Usuários', 'Auditoria'],
   },
 ] as const;
 
@@ -33,7 +35,13 @@ for (const profile of profiles) {
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page).toHaveURL(new RegExp(profile.path));
     for (const label of profile.nav) {
-      await expect(page.getByRole('navigation').getByText(label)).toBeVisible();
+      await expect(page.getByRole('navigation').getByText(label, { exact: true })).toBeVisible();
+    }
+    if ('menu' in profile) {
+      await page.getByRole('button', { name: 'Mais opções' }).click();
+      for (const label of profile.menu) {
+        await expect(page.getByRole('menu').getByText(label)).toBeVisible();
+      }
     }
   });
 }

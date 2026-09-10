@@ -80,6 +80,11 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+    # Sem `ports:` — API S3 (9000) e console (9001) só na rede Docker.
+    # HLS GetObject em hls/* é anônimo no bucket; o Caddy chega via `minio:9000`
+    # depois do forward_auth. Nunca publique 9000/9001 no host nem no firewall.
+    expose:
+      - '9000'
     networks:
       - ava_internal
 
@@ -115,7 +120,7 @@ services:
       # HLS offload (Caddy /media-cdn → MinIO). Ex.: https://ava.exemplo.com.br/media-cdn
       MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL}
       MEDIA_HLS_OFFLOAD: ${MEDIA_HLS_OFFLOAD:-true}
-      MEDIA_PLAYBACK_TOKEN_TTL: ${MEDIA_PLAYBACK_TOKEN_TTL:-5m}
+      MEDIA_PLAYBACK_TOKEN_TTL: ${MEDIA_PLAYBACK_TOKEN_TTL:-3m}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
@@ -128,6 +133,7 @@ services:
       LOGIN_IP_RATE_LIMIT: ${LOGIN_IP_RATE_LIMIT:-30}
       LOGIN_IP_RATE_WINDOW_SEC: ${LOGIN_IP_RATE_WINDOW_SEC:-300}
       CERTIFICATES_DIR: ${CERTIFICATES_DIR:-/data/certificates}
+      AVA_DOMAIN: ${AVA_DOMAIN}
       SEED_PASSWORD: ${SEED_PASSWORD:-}
       THROTTLE_TTL_MS: ${THROTTLE_TTL_MS:-60000}
       THROTTLE_LIMIT: ${THROTTLE_LIMIT:-300}

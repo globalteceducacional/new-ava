@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { Role } from '@ava/shared';
 
 const PROTECTED_PREFIXES = ['/aluno', '/professor', '/instituicao', '/master', '/perfil'];
+
+const ALLOWED_ROLES = new Set<string>(Object.values(Role));
 
 /** Prefixo de rota → roles permitidas. */
 const ROLE_GATES: Array<{ prefix: string; roles: string[] }> = [
@@ -15,18 +18,24 @@ const ROLE_HOMES: Record<string, string> = {
   ADM_MASTER: '/master',
   ADM_INSTITUICAO: '/instituicao',
   PROFESSOR: '/professor',
-  ALUNO: '/aluno/cursos',
+  ALUNO: '/aluno',
 };
 
 function homeForRole(role: string | undefined): string {
-  if (!role) return '/aluno/cursos';
-  return ROLE_HOMES[role] ?? '/aluno/cursos';
+  if (!role || !ALLOWED_ROLES.has(role)) return '/aluno';
+  return ROLE_HOMES[role] ?? '/aluno';
+}
+
+function trustedRole(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const decoded = decodeURIComponent(raw);
+  return ALLOWED_ROLES.has(decoded) ? decoded : undefined;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get('ava_session')?.value;
-  const role = request.cookies.get('ava_role')?.value;
+  const role = trustedRole(request.cookies.get('ava_role')?.value);
 
   // Já autenticado em /login → entra direto no painel do perfil.
   if (pathname === '/login' || pathname.startsWith('/login/')) {
@@ -35,7 +44,7 @@ export function middleware(request: NextRequest) {
       const dest =
         next && next.startsWith('/') && !next.startsWith('//')
           ? next
-          : homeForRole(role ? decodeURIComponent(role) : undefined);
+          : homeForRole(role);
       return NextResponse.redirect(new URL(dest, request.url));
     }
     return NextResponse.next();
@@ -56,12 +65,11 @@ export function middleware(request: NextRequest) {
   }
 
   if (role) {
-    const decodedRole = decodeURIComponent(role);
     const gate = ROLE_GATES.find(
       (g) => pathname === g.prefix || pathname.startsWith(`${g.prefix}/`),
     );
-    if (gate && !gate.roles.includes(decodedRole)) {
-      return NextResponse.redirect(new URL(homeForRole(decodedRole), request.url));
+    if (gate && !gate.roles.includes(role)) {
+      return NextResponse.redirect(new URL(homeForRole(role), request.url));
     }
   }
 

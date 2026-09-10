@@ -50,6 +50,44 @@ export class FfmpegService {
     return { outDir, durationSec: probe.durationSec };
   }
 
+  /** Primeiro frame do vídeo (JPEG) para capa/fallback. */
+  async extractPosterToBuffer(inputPath: string): Promise<Buffer> {
+    const outDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ava-poster-'));
+    const outFile = path.join(outDir, 'poster.jpg');
+    try {
+      try {
+        await this.run([
+          '-y',
+          '-ss',
+          '1',
+          '-i',
+          inputPath,
+          '-frames:v',
+          '1',
+          '-q:v',
+          '3',
+          outFile,
+        ]);
+      } catch {
+        await this.run([
+          '-y',
+          '-ss',
+          '0',
+          '-i',
+          inputPath,
+          '-frames:v',
+          '1',
+          '-q:v',
+          '3',
+          outFile,
+        ]);
+      }
+      return fs.readFile(outFile);
+    } finally {
+      await fs.rm(outDir, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
+
   private async runHls(
     inputPath: string,
     codecArgs: string[],

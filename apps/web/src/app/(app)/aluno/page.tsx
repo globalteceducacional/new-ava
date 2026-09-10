@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
+import { AlunoHomeClient } from './AlunoHomeClient';
 
-/** Inscrição opcional removida — o aluno só assiste. */
 export default function AlunoHomePage() {
-  redirect('/aluno/cursos');
+  return <AlunoHomeClient />;
 }

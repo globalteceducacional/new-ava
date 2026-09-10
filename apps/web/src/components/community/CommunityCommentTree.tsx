@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { isCommunityLanguageBlocked } from '@/components/community/CommunityLanguageNotice';
 
 export type CommentNode = {
   id: string;
@@ -87,6 +88,9 @@ function CommentItem({
       setBody('');
       setOpen(false);
     } catch (ex) {
+      if (isCommunityLanguageBlocked(ex)) {
+        return;
+      }
       setErr(ex instanceof Error ? ex.message : 'Falha ao responder');
     } finally {
       setBusy(false);

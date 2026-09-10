@@ -12,7 +12,7 @@ import {
   emptyQuizQuestion,
   serializeQuizQuestions,
 } from '@/components/course-editor/QuizQuestionsEditor';
-import { apiFetch } from '@/lib/auth/api';
+import { apiFetch, apiUpload } from '@/lib/auth/api';
 import type {
   Category,
   Course,
@@ -25,6 +25,7 @@ import type {
 import { COURSE_STATUS_LABELS } from '@/lib/admin/types';
 import { errorMessage, formatDate } from '@/lib/format';
 import { mediaStatusLabel } from '@/lib/course-view/media-status';
+import { CourseCover } from '@/components/course-view/CourseCover';
 import {
   MATERIAL_TYPE_LABELS,
   deleteLessonMaterial,
@@ -121,6 +122,10 @@ export function CourseEditor({
   const [synopsis, setSynopsis] = useState('');
   const [workloadHours, setWorkloadHours] = useState(0);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverVersion, setCoverVersion] = useState(0);
+  const [hasCustomCover, setHasCustomCover] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -159,6 +164,8 @@ export function CourseEditor({
       setSynopsis(c.synopsis ?? '');
       setWorkloadHours(c.workloadHours ?? 0);
       setCategoryIds(c.categories.map((x) => x.category.id));
+      setHasCustomCover(Boolean(c.hasCustomCover));
+      setCoverVersion(Date.now());
       setModules(results[1] as ModuleRow[]);
       setActivities(results[2] as ActivityRow[]);
       setQuizzes(results[3] as QuizRow[]);
@@ -270,12 +277,32 @@ export function CourseEditor({
             : `/professor/editor?courseId=${created.id}`,
         );
         await loadBundle(created.id);
+        if (coverFile) {
+          const fd = new FormData();
+          fd.append('file', coverFile);
+          await apiUpload(`/courses/${created.id}/cover`, fd);
+          setCoverFile(null);
+          if (coverPreview) URL.revokeObjectURL(coverPreview);
+          setCoverPreview(null);
+          setHasCustomCover(true);
+          setCoverVersion(Date.now());
+        }
         setStep('lessons');
       } else {
         await apiFetch(`/courses/${courseId}`, {
           method: 'PATCH',
           body: JSON.stringify(payload),
         });
+        if (coverFile) {
+          const fd = new FormData();
+          fd.append('file', coverFile);
+          await apiUpload(`/courses/${courseId}/cover`, fd);
+          setCoverFile(null);
+          if (coverPreview) URL.revokeObjectURL(coverPreview);
+          setCoverPreview(null);
+          setHasCustomCover(true);
+          setCoverVersion(Date.now());
+        }
         setNotice('Dados gerais salvos.');
         setDirty(false);
         await loadBundle(courseId);
@@ -408,6 +435,46 @@ export function CourseEditor({
           onCreatedCategory={(c) =>
             setCategories((prev) => [...prev, c].sort((a, b) => a.name.localeCompare(b.name)))
           }
+          courseId={courseId}
+          coverPreview={coverPreview}
+          coverVersion={coverVersion}
+          hasCustomCover={hasCustomCover}
+          onCoverFile={(file) => {
+            if (coverPreview) URL.revokeObjectURL(coverPreview);
+            if (!file) {
+              setCoverFile(null);
+              setCoverPreview(null);
+              return;
+            }
+            setCoverFile(file);
+            setCoverPreview(URL.createObjectURL(file));
+            setDirty(true);
+          }}
+          onRemoveCover={() => {
+            void (async () => {
+              if (!courseId) {
+                if (coverPreview) URL.revokeObjectURL(coverPreview);
+                setCoverFile(null);
+                setCoverPreview(null);
+                return;
+              }
+              setBusy(true);
+              try {
+                await apiFetch(`/courses/${courseId}/cover`, { method: 'DELETE' });
+                if (coverPreview) URL.revokeObjectURL(coverPreview);
+                setCoverFile(null);
+                setCoverPreview(null);
+                setHasCustomCover(false);
+                setCoverVersion(Date.now());
+                setNotice('Capa personalizada removida. A thumb da aula será usada se existir.');
+                setError(null);
+              } catch (err) {
+                setError(errorMessage(err, 'Não foi possível remover a capa'));
+              } finally {
+                setBusy(false);
+              }
+            })();
+          }}
           onSubmit={saveBasics}
         />
       ) : null}
@@ -471,11 +538,17 @@ function BasicsStep(props: {
   categoryIds: string[];
   categories: Category[];
   busy: boolean;
+  courseId: string;
+  coverPreview: string | null;
+  coverVersion: number;
+  hasCustomCover: boolean;
   onTitle: (v: string) => void;
   onSynopsis: (v: string) => void;
   onWorkloadHours: (v: number) => void;
   onCategories: (ids: string[]) => void;
   onCreatedCategory: (c: Category) => void;
+  onCoverFile: (file: File | null) => void;
+  onRemoveCover: () => void;
   onSubmit: (e: FormEvent) => void;
 }) {
   return (
@@ -532,6 +605,47 @@ function BasicsStep(props: {
             onCreated={props.onCreatedCategory}
             disabled={props.busy}
           />
+        </div>
+        <div className="field">
+          <label htmlFor="course-cover">Imagem de capa</label>
+          <div className="course-cover-preview" aria-hidden={!props.coverPreview && !props.courseId}>
+            {props.coverPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={props.coverPreview} alt="" />
+            ) : props.courseId ? (
+              <CourseCover
+                courseId={props.courseId}
+                cacheKey={props.coverVersion}
+                authenticated
+              />
+            ) : (
+              <span className="muted small" style={{ padding: '1rem' }}>
+                Sem capa ainda
+              </span>
+            )}
+          </div>
+          <input
+            id="course-cover"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={props.busy}
+            onChange={(e) => props.onCoverFile(e.target.files?.[0] ?? null)}
+            style={{ marginTop: '0.65rem' }}
+          />
+          <p className="muted small" style={{ marginTop: '0.35rem' }}>
+            JPEG, PNG ou WebP, até 5 MB. Se não enviar, usamos a thumb da primeira aula com vídeo.
+          </p>
+          {props.hasCustomCover && !props.coverPreview ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={props.busy}
+              onClick={props.onRemoveCover}
+              style={{ marginTop: '0.5rem' }}
+            >
+              Remover capa personalizada
+            </button>
+          ) : null}
         </div>
         <button className="btn btn-primary" type="submit" disabled={props.busy}>
           {props.busy ? 'Salvando…' : 'Salvar e continuar'}

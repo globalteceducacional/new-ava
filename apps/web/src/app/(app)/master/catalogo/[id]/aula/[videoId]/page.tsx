@@ -14,6 +14,7 @@ export default function MasterLessonPage() {
       lessonHref={(videoId) => `/master/catalogo/${params.id}/aula/${videoId}`}
       activityHref={(activityId) => `/aluno/atividade/${activityId}`}
       quizHref={(quizId) => `/aluno/quiz/${quizId}`}
+      communityBasePath="/master/comunidade"
     />
   );
 }

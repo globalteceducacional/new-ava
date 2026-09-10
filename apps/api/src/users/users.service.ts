@@ -12,6 +12,7 @@ import type { AuthUser } from '../auth/auth.types';
 import { hashPassword, verifyPassword } from '../auth/password.util';
 import { AuditService } from '../audit/audit.service';
 import { softDeleteData } from '../common/soft-delete';
+import { matchesImageMagic } from '../media/mime.util';
 import { MinioService } from '../media/minio.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
@@ -198,7 +199,7 @@ export class UsersService {
       throw new BadRequestException('Imagem deve ter no máximo 5 MB');
     }
     const mime = (file.mimetype || '').toLowerCase();
-    if (!AVATAR_MIMES.has(mime)) {
+    if (!AVATAR_MIMES.has(mime) || !matchesImageMagic(file.buffer, mime)) {
       throw new BadRequestException('Use JPEG, PNG ou WebP');
     }
 

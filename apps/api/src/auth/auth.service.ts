@@ -105,7 +105,7 @@ export class AuthService {
   async refresh(
     rawToken: string | undefined,
     meta: { ip?: string; userAgent?: string },
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: AuthUser }> {
     if (!rawToken) {
       throw new UnauthorizedException('Refresh token ausente');
     }
@@ -155,7 +155,7 @@ export class AuthService {
     const accessToken = await this.signAccess(authUser);
     const refreshToken = await this.issueRefresh(stored.userId, meta);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: authUser };
   }
 
   async logout(rawToken: string | undefined, userId?: string): Promise<void> {

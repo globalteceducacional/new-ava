@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
 import { CoursesModule } from '../courses/courses.module';
+import { CourseCoverManageController, CourseCoversPublicController } from './course-covers.controller';
 import { FfmpegService } from './ffmpeg.service';
 import { MediaController } from './media.controller';
 import { MEDIA_TRANSCODE_QUEUE, MediaProcessor } from './media.processor';
@@ -44,7 +45,7 @@ function redisConnection(url: string) {
     }),
     BullModule.registerQueue({ name: MEDIA_TRANSCODE_QUEUE }),
   ],
-  controllers: [MediaController, ModuleVideosController],
+  controllers: [MediaController, ModuleVideosController, CourseCoversPublicController, CourseCoverManageController],
   providers: [
     MinioService,
     FfmpegService,

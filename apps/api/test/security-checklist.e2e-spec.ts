@@ -12,7 +12,11 @@ import { AllExceptionsFilter } from '../src/common/all-exceptions.filter';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { runSeed } from '../prisma/seed';
 import { SEED_PASSWORD } from '../prisma/seed';
-import { ALLOWED_VIDEO_MIMES, matchesVideoMagic } from '../src/media/mime.util';
+import {
+  ALLOWED_VIDEO_MIMES,
+  matchesImageMagic,
+  matchesVideoMagic,
+} from '../src/media/mime.util';
 import { hashPassword } from '../src/auth/password.util';
 import { LoginProtectionService } from '../src/auth/login-protection.service';
 
@@ -62,6 +66,11 @@ describe('Security checklist (e2e)', () => {
     expect(matchesVideoMagic(Buffer.from('not-a-video'), 'video/mp4')).toBe(
       false,
     );
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(matchesImageMagic(jpeg, 'image/jpeg')).toBe(true);
+    expect(matchesImageMagic(Buffer.from('not-an-image'), 'image/jpeg')).toBe(
+      false,
+    );
   });
 
   it('erro 500 não vaza stack / mensagem interna', async () => {
@@ -81,7 +90,10 @@ describe('Security checklist (e2e)', () => {
     const refresh = cookies.find((c) => c.startsWith('ava_refresh='));
     expect(refresh).toBeTruthy();
     expect(refresh!.toLowerCase()).toMatch(/samesite=strict/);
-    expect(refresh!.toLowerCase()).toMatch(/httponly/);
+    const role = cookies.find((c) => c.startsWith('ava_role='));
+    expect(role).toBeTruthy();
+    expect(role!.toLowerCase()).toMatch(/httponly/);
+    expect(role!.toLowerCase()).toMatch(/samesite=strict/);
 
     const log = await prisma.auditLog.findFirst({
       where: { action: 'LOGIN_SUCCESS' },

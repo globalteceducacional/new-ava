@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
   UploadedFile,
   UseGuards,
@@ -14,7 +15,7 @@ import {
 import { SkipThrottle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleCode } from '@prisma/client';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { diskStorage } from 'multer';
 import { tmpdir } from 'os';
@@ -24,7 +25,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { MediaService } from './media.service';
+import {
+  MEDIA_COOKIE,
+  MediaService,
+  mediaTokenFromCookieHeader,
+} from './media.service';
 
 @Controller('media')
 export class MediaController {
@@ -32,8 +37,7 @@ export class MediaController {
 
   /**
    * Endpoint interno do Caddy (forward_auth).
-   * Valida ?token= na URI original antes de proxyar o objeto no MinIO.
-   * Sem throttle: cada segmento HLS gera uma chamada.
+   * Cookie HttpOnly `ava_media` ou ?token= legado.
    */
   @SkipThrottle()
   @Get('cdn-auth')
@@ -42,6 +46,7 @@ export class MediaController {
     @Headers('x-original-uri') originalUri: string | undefined,
     @Headers('authorization') authorization: string | undefined,
     @Query('token') tokenQuery: string | undefined,
+    @Headers('cookie') cookieHeader: string | undefined,
     @Res() res: Response,
   ) {
     const uri = forwardedUri || originalUri;
@@ -57,6 +62,7 @@ export class MediaController {
         token = undefined;
       }
     }
+    if (!token) token = mediaTokenFromCookieHeader(cookieHeader);
     const ok = await this.media.authorizeCdnRequest(uri, token);
     if (!ok) {
       res.status(401).send('Unauthorized');
@@ -132,8 +138,27 @@ export class MediaController {
     RoleCode.PROFESSOR,
     RoleCode.ALUNO,
   )
-  playback(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.media.playback(id, user);
+  playback(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.media.playback(id, user).then((result) => {
+      const isProd = process.env.NODE_ENV === 'production';
+      res.cookie(MEDIA_COOKIE, result.token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: result.ttlMs,
+      });
+      return {
+        mediaId: result.mediaId,
+        status: result.status,
+        playlistUrl: result.playlistUrl,
+        expiresIn: result.expiresIn,
+      };
+    });
   }
 
   /** HLS: playlists/segmentos — alto volume; não entra no rate limit global. */
@@ -142,9 +167,15 @@ export class MediaController {
   async hls(
     @Param('id') id: string,
     @Param('path') assetPath: string,
-    @Query('token') token: string,
+    @Query('token') tokenQuery: string | undefined,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
+    const token =
+      tokenQuery ||
+      (typeof req.cookies?.[MEDIA_COOKIE] === 'string'
+        ? req.cookies[MEDIA_COOKIE]
+        : undefined);
     const result = await this.media.streamHls(
       id,
       Array.isArray(assetPath) ? assetPath.join('/') : assetPath,

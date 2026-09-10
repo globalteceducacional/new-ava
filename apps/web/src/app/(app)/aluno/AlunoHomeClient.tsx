@@ -2,51 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
-import { StudentCourseGrid } from '@/components/course-view/StudentCourseGrid';
+import { StudentHomeDashboard } from '@/components/course-view/StudentHomeDashboard';
 import { apiFetch } from '@/lib/auth/api';
-import type { StudentCourseCard } from '@/lib/course-view/student-courses';
-
-type MineItem = StudentCourseCard & {
-  enrollmentId: string;
-  enrolledAt: string;
-  institution: { name: string; slug: string };
-};
+import type { StudentHomePayload } from '@/lib/course-view/student-home';
 
 export function AlunoHomeClient() {
-  const [items, setItems] = useState<MineItem[]>([]);
+  const [data, setData] = useState<StudentHomePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
       try {
-        const data = await apiFetch<MineItem[]>('/courses/mine');
-        setItems(data);
+        const payload = await apiFetch<StudentHomePayload>('/courses/home');
+        setData(payload);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Falha ao carregar cursos');
+        setError(e instanceof Error ? e.message : 'Falha ao carregar o início');
       }
     })();
   }, []);
 
   return (
-    <AppShell title="Meus cursos">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">{items[0]?.institution.name ?? 'Instituição'}</p>
-          <h1>Meus cursos</h1>
-          <p>
-            Cursos opcionais em que você se inscreveu. A grade obrigatória da escola fica em Grade
-            Curricular.
-          </p>
-        </div>
-      </div>
-
+    <AppShell title="Início">
       {error ? <div className="alert alert-danger">{error}</div> : null}
-      {!error ? (
-        <StudentCourseGrid
-          items={items}
-          emptyMessage="Você ainda não se inscreveu em nenhum curso opcional. Veja a aba Cursos."
-        />
-      ) : null}
+      {!error && !data ? <p className="muted">Carregando seu aprendizado…</p> : null}
+      {data ? <StudentHomeDashboard data={data} /> : null}
     </AppShell>
   );
 }

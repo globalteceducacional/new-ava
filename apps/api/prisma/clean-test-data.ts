@@ -4,6 +4,7 @@
  * Os specs criam registros com sufixo de timestamp (`Date.now()`), o que polui
  * o catálogo visto no navegador. Este script apaga fisicamente apenas o que
  * casa com esses padrões — dados do seed e criados na UI não são tocados.
+ * Também remove tópicos de comunidade gerados pelo e2e (títulos fixos e prefixo "E2E ").
  *
  * Uso: npm run db:clean-tests
  */
@@ -72,13 +73,23 @@ async function main() {
     .filter((i) => matches(i.name, INSTITUTION_PATTERNS))
     .map((i) => i.id);
 
-  // onDelete: Cascade cuida de matrículas, módulos, conteúdos e vínculos.
-  const [deletedCourses, deletedCategories, deletedUsers, deletedInstitutions] =
+  // Tópicos de comunidade criados pelo e2e (títulos fixos antigos + prefixo E2E).
+  const communityTopicTitles = ['Dúvida em variáveis', 'Hack'];
+
+  const [deletedCourses, deletedCategories, deletedUsers, deletedInstitutions, deletedTopics] =
     await prisma.$transaction([
       prisma.course.deleteMany({ where: { id: { in: courseIds } } }),
       prisma.category.deleteMany({ where: { id: { in: categoryIds } } }),
       prisma.user.deleteMany({ where: { id: { in: userIds } } }),
       prisma.institution.deleteMany({ where: { id: { in: institutionIds } } }),
+      prisma.communityTopic.deleteMany({
+        where: {
+          OR: [
+            { title: { in: communityTopicTitles } },
+            { title: { startsWith: 'E2E ' } },
+          ],
+        },
+      }),
     ]);
 
   console.log('Limpeza de dados de teste concluída:');
@@ -86,6 +97,7 @@ async function main() {
   console.log(`  categorias:    ${deletedCategories.count}`);
   console.log(`  usuários:      ${deletedUsers.count}`);
   console.log(`  instituições:  ${deletedInstitutions.count}`);
+  console.log(`  tópicos e2e:   ${deletedTopics.count}`);
 }
 
 main()

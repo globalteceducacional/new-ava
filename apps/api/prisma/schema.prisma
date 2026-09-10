@@ -262,6 +262,8 @@ model Course {
   synopsis    String?
   /// Carga horária do curso em horas inteiras (ex.: 2, 4, 8, 20).
   workloadHours Int         @default(0) @map("workload_hours")
+  /// Capa enviada no editor (MinIO). Se vazia, a API usa o poster da primeira aula.
+  coverKey      String?      @map("cover_key")
   status      CourseStatus @default(DRAFT)
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
@@ -479,6 +481,8 @@ model MediaAsset {
   storageKey       String           @map("storage_key")
   /// Prefixo HLS no MinIO (ex.: hls/{id}/) quando READY.
   hlsPrefix        String?          @map("hls_prefix")
+  /// Frame JPEG extraído do vídeo (fallback de capa do curso).
+  posterKey        String?          @map("poster_key")
   errorMessage     String?          @map("error_message") @db.Text
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")

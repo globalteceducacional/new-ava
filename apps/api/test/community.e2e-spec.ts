@@ -15,6 +15,8 @@ describe('Community (e2e)', () => {
   let courseId: string;
   let ifmaId: string;
   let videoId: string;
+  let createdTopicId: string | undefined;
+  const e2eStamp = Date.now();
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -93,6 +95,17 @@ describe('Community (e2e)', () => {
   });
 
   afterAll(async () => {
+    if (createdTopicId) {
+      await prisma.communityTopic.deleteMany({ where: { id: createdTopicId } });
+    }
+    await prisma.communityTopic.deleteMany({
+      where: {
+        OR: [
+          { title: { startsWith: 'E2E ' } },
+          { title: { in: ['Dúvida em variáveis', 'Hack'] } },
+        ],
+      },
+    });
     await app.close();
   });
 
@@ -102,11 +115,12 @@ describe('Community (e2e)', () => {
       .post(`/courses/${courseId}/topics`)
       .set(authHeader(aluno.token))
       .send({
-        title: 'Dúvida em variáveis',
+        title: `E2E dúvida variáveis ${e2eStamp}`,
         body: 'Assisti Variáveis e tipos e...',
         moduleVideoId: videoId,
       })
       .expect(201);
+    createdTopicId = topic.body.id;
 
     const aluno2 = await loginAs(app, 'aluno2@ifma.edu.br');
     await request(app.getHttpServer())
@@ -135,7 +149,42 @@ describe('Community (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/courses/${gram.id}/topics`)
       .set(authHeader(aluno.token))
-      .send({ title: 'Hack', body: 'sem matrícula' })
+      .send({ title: `E2E hack ${e2eStamp}`, body: 'sem matrícula' })
       .expect(403);
+  });
+
+  it('recusa publicação e comentário com linguagem explícita (não grava)', async () => {
+    const aluno = await loginAs(app, 'aluno');
+    const blocked = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/topics`)
+      .set(authHeader(aluno.token))
+      .send({
+        title: `E2E linguagem ${e2eStamp}`,
+        body: 'Olha esse link de pornografia no material',
+      })
+      .expect(400);
+    expect(blocked.body.code).toBe('COMMUNITY_LANGUAGE_BLOCKED');
+
+    const topic = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/topics`)
+      .set(authHeader(aluno.token))
+      .send({
+        title: `E2E linguagem ok ${e2eStamp}`,
+        body: 'Dúvida sobre o exercício 2.',
+      })
+      .expect(201);
+    createdTopicId = topic.body.id;
+
+    await request(app.getHttpServer())
+      .post(`/topics/${topic.body.id}/replies`)
+      .set(authHeader(aluno.token))
+      .send({ body: 'p o r n o no grupo' })
+      .expect(400);
+
+    const thread = await request(app.getHttpServer())
+      .get(`/topics/${topic.body.id}`)
+      .set(authHeader(aluno.token))
+      .expect(200);
+    expect(thread.body.replies).toEqual([]);
   });
 });

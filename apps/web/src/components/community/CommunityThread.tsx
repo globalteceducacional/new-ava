@@ -10,6 +10,10 @@ import {
   CommunityCommentTree,
   type CommentNode,
 } from '@/components/community/CommunityCommentTree';
+import {
+  CommunityLanguageNotice,
+  isCommunityLanguageBlocked,
+} from '@/components/community/CommunityLanguageNotice';
 
 type TopicDetail = {
   id: string;
@@ -40,6 +44,7 @@ export function CommunityThread({ topicId, basePath }: Props) {
   const [reply, setReply] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [languageBlocked, setLanguageBlocked] = useState(false);
 
   const canModerate = Boolean(
     user &&
@@ -97,7 +102,11 @@ export function CommunityThread({ topicId, basePath }: Props) {
       await sendReply(null, reply.trim());
       setReply('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao comentar');
+      if (isCommunityLanguageBlocked(err)) {
+        setLanguageBlocked(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Falha ao comentar');
+      }
     } finally {
       setBusy(false);
     }
@@ -110,6 +119,10 @@ export function CommunityThread({ topicId, basePath }: Props) {
 
   return (
     <div className="community-thread-page">
+      <CommunityLanguageNotice
+        open={languageBlocked}
+        onClose={() => setLanguageBlocked(false)}
+      />
       {error ? <div className="alert alert-danger">{error}</div> : null}
       {topic ? (
         <>
@@ -174,7 +187,14 @@ export function CommunityThread({ topicId, basePath }: Props) {
                 canModerate={canModerate}
                 currentUserId={user?.id ?? null}
                 onReply={async (parentId, body) => {
-                  await sendReply(parentId, body);
+                  try {
+                    await sendReply(parentId, body);
+                  } catch (err) {
+                    if (isCommunityLanguageBlocked(err)) {
+                      setLanguageBlocked(true);
+                    }
+                    throw err;
+                  }
                 }}
                 onDelete={deleteReply}
               />

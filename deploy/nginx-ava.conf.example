@@ -10,6 +10,8 @@
 #      sudo certbot --nginx -d ava.seudominio.com.br
 #
 # Pré-requisito: compose behind-nginx com api:3000, web:3001, minio:9000 em 127.0.0.1
+# Firewall: libere só 80/443. NÃO abra 9000/9001 — HLS em hls/* é GetObject
+# anônimo no bucket; o nginx só deve alcançá-lo via loopback.
 # ---------------------------------------------------------------------------
 
 upstream ava_api {
@@ -73,6 +75,7 @@ server {
         proxy_set_header X-Forwarded-Uri $request_uri;
         proxy_set_header X-Original-URI $request_uri;
         proxy_set_header Host $host;
+        proxy_set_header Cookie $http_cookie;
         proxy_set_header Authorization "";
     }
 

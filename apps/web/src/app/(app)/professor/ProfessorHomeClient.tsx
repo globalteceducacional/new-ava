@@ -85,11 +85,17 @@ export function ProfessorHomeClient() {
                     <div className="cell-actions">
                       <Link
                         className="btn btn-secondary btn-sm"
+                        href={`/professor/cursos/${course.id}`}
+                      >
+                        Ver como aluno
+                      </Link>
+                      <Link
+                        className="btn btn-primary btn-sm"
                         href={`/professor/editor?courseId=${course.id}`}
                       >
                         Editar conteúdo
                       </Link>
-                      <Link className="btn btn-ghost btn-sm" href="/professor/correcoes">
+                      <Link className="btn btn-secondary btn-sm" href="/professor/correcoes">
                         Correções
                       </Link>
                     </div>

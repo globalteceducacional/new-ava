@@ -104,6 +104,7 @@ export type Course = {
   /** Carga horária em horas inteiras. */
   workloadHours?: number;
   status: CourseStatus;
+  hasCustomCover?: boolean;
   categories: Array<{ category: { id: string; name: string } }>;
   teachers: Array<{
     user: { id: string; name: string; email: string };

@@ -107,6 +107,36 @@ export async function loginRequest(login: string, password: string): Promise<Log
   return (await res.json()) as LoginResponse;
 }
 
+export async function registerRequest(
+  name: string,
+  email: string,
+  emailConfirm: string,
+  password: string,
+): Promise<LoginResponse> {
+  const res = await fetch(`${getApiBaseUrl()}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ name, email, emailConfirm, password }),
+  });
+
+  if (res.status === 429) {
+    throw new Error('Muitas tentativas. Aguarde alguns minutos e tente de novo.');
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: unknown } | null;
+    const raw = body?.message;
+    const message =
+      typeof raw === 'string'
+        ? raw
+        : Array.isArray(raw) && typeof raw[0] === 'string'
+          ? raw[0]
+          : 'Não foi possível criar a conta';
+    throw new Error(message);
+  }
+  return (await res.json()) as LoginResponse;
+}
+
 export async function logoutRequest(): Promise<void> {
   try {
     await fetch(`${getApiBaseUrl()}/auth/logout`, {

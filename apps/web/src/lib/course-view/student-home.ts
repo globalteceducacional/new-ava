@@ -17,6 +17,8 @@ export type StudentHomeRanking = {
 };
 
 export type StudentHomePayload = {
+  /** Aluno com escola real (não só catálogo livre). */
+  hasSchool?: boolean;
   essentials: StudentHomeBucket;
   recommended: StudentHomeBucket;
   explore: StudentHomeBucket;

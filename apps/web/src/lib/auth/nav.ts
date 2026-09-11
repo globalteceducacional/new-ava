@@ -57,9 +57,14 @@ export function navForRole(user: AuthUser): RoleNav {
       };
     case Role.ALUNO:
     default: {
-      const overflow: NavItem[] = [];
+      const primary: NavItem[] = [
+        { href: '/aluno', label: 'Início', icon: '▣' },
+        { href: '/aluno/comunidade', label: 'Comunidades', icon: '◎' },
+        { href: '/aluno/certificados', label: 'Certificados', icon: '✎' },
+        { href: '/aluno/cursos', label: 'Cursos', icon: '☰' },
+      ];
       if (user.hasSchool) {
-        overflow.push({
+        primary.push({
           href: '/aluno/grade',
           label: 'Grade Curricular',
           icon: '▤',
@@ -68,13 +73,8 @@ export function navForRole(user: AuthUser): RoleNav {
       return {
         section: 'Aluno',
         homeHref: '/aluno',
-        primary: [
-          { href: '/aluno', label: 'Início', icon: '▣' },
-          { href: '/aluno/comunidade', label: 'Comunidades', icon: '◎' },
-          { href: '/aluno/certificados', label: 'Certificados', icon: '✎' },
-          { href: '/aluno/cursos', label: 'Cursos', icon: '☰' },
-        ],
-        overflow,
+        primary,
+        overflow: [],
       };
     }
   }

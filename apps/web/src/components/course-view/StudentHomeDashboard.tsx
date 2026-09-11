@@ -78,15 +78,21 @@ function LearningRings(props: {
   essentials: StudentHomeBucket;
   recommended: StudentHomeBucket;
   explore: StudentHomeBucket;
+  hasSchool: boolean;
 }) {
   const user = getStoredUser();
   const cx = 140;
   const cy = 140;
-  const rings = [
-    { key: 'explore' as const, r: 112, pct: props.explore.percent },
-    { key: 'recommended' as const, r: 86, pct: props.recommended.percent },
-    { key: 'essentials' as const, r: 60, pct: props.essentials.percent },
-  ];
+  const rings = props.hasSchool
+    ? [
+        { key: 'explore' as const, r: 112, pct: props.explore.percent },
+        { key: 'recommended' as const, r: 86, pct: props.recommended.percent },
+        { key: 'essentials' as const, r: 60, pct: props.essentials.percent },
+      ]
+    : [
+        { key: 'explore' as const, r: 112, pct: props.explore.percent },
+        { key: 'recommended' as const, r: 86, pct: props.recommended.percent },
+      ];
 
   return (
     <section className="home-learn">
@@ -154,7 +160,10 @@ function LearningRings(props: {
         </div>
       </div>
       <ul className="home-rings-legend">
-        {(['essentials', 'recommended', 'explore'] as const).map((key) => {
+        {(props.hasSchool
+          ? (['essentials', 'recommended', 'explore'] as const)
+          : (['recommended', 'explore'] as const)
+        ).map((key) => {
           const bucket = props[key];
           return (
             <li key={key}>
@@ -205,23 +214,27 @@ function Ranking(props: { rows: StudentHomeRanking[] }) {
 
 /** Dashboard inicial do aluno (anéis + continue + ranking). */
 export function StudentHomeDashboard({ data }: { data: StudentHomePayload }) {
+  const hasSchool = Boolean(data.hasSchool);
   return (
     <div className="student-home">
       <LearningRings
+        hasSchool={hasSchool}
         essentials={data.essentials}
         recommended={data.recommended}
         explore={data.explore}
       />
       <div className="home-continue">
         <h2 className="home-col-title">Continue aprendendo</h2>
-        <ContinueBlock
-          tone="essentials"
-          title="Essenciais para você"
-          subtitle="Cursos obrigatórios da sua instituição."
-          bucket={data.essentials}
-          moreHref="/aluno/grade"
-          emptyLabel="Nenhum curso obrigatório na sua grade ainda."
-        />
+        {hasSchool ? (
+          <ContinueBlock
+            tone="essentials"
+            title="Essenciais para você"
+            subtitle="Cursos obrigatórios da sua instituição."
+            bucket={data.essentials}
+            moreHref="/aluno/grade"
+            emptyLabel="Nenhum curso obrigatório na sua grade ainda."
+          />
+        ) : null}
         <ContinueBlock
           tone="recommended"
           title="Recomendados pela equipe"
@@ -239,7 +252,7 @@ export function StudentHomeDashboard({ data }: { data: StudentHomePayload }) {
           emptyLabel="Nenhum curso publicado no catálogo no momento."
         />
       </div>
-      <Ranking rows={data.ranking} />
+      {hasSchool ? <Ranking rows={data.ranking} /> : null}
     </div>
   );
 }

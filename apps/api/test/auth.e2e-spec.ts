@@ -41,6 +41,55 @@ describe('Auth (e2e)', () => {
     );
   });
 
+  it('cadastro de aluno sem instituição → 201 + sessão', async () => {
+    const stamp = Date.now();
+    const res = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Aluno Novo',
+        email: `novo.${stamp}@exemplo.com`,
+        emailConfirm: `novo.${stamp}@exemplo.com`,
+        password: SEED_PASSWORD,
+      })
+      .expect(201);
+
+    expect(res.body.user).toEqual(
+      expect.objectContaining({
+        email: `novo.${stamp}@exemplo.com`,
+        role: 'ALUNO',
+        institutionIds: [],
+        hasSchool: false,
+      }),
+    );
+    expect(res.headers['set-cookie']).toEqual(
+      expect.arrayContaining([expect.stringContaining('ava_refresh=')]),
+    );
+  });
+
+  it('cadastro com e-mail duplicado → 409', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Aluno Seed',
+        email: 'aluno@ifma.edu.br',
+        emailConfirm: 'aluno@ifma.edu.br',
+        password: SEED_PASSWORD,
+      })
+      .expect(409);
+  });
+
+  it('cadastro com e-mails diferentes → 400', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Aluno Novo',
+        email: 'um@exemplo.com',
+        emailConfirm: 'outro@exemplo.com',
+        password: SEED_PASSWORD,
+      })
+      .expect(400);
+  });
+
   it('login senha errada → 401', async () => {
     await request(app.getHttpServer())
       .post('/auth/login')

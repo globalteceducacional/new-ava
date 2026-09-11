@@ -15,6 +15,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthUser } from './auth.types';
 import { accessTokenMaxAgeMs } from './jwt-secret.util';
@@ -36,6 +37,29 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto.login, dto.password, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    this.setRefreshCookie(res, result.refreshToken);
+    this.setAccessCookie(res, result.accessToken);
+    this.setUiCookies(res, result.user.role);
+
+    return {
+      accessToken: result.accessToken,
+      user: result.user,
+    };
+  }
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 10, ttl: 300_000 } })
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.register(dto, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

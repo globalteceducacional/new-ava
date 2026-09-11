@@ -6,7 +6,7 @@ const profiles = [
   {
     login: 'aluno',
     path: '/aluno',
-    nav: ['Início', 'Comunidades', 'Certificados', 'Cursos'],
+    nav: ['Início', 'Comunidades', 'Certificados', 'Cursos', 'Grade Curricular'],
   },
   {
     login: 'professor',

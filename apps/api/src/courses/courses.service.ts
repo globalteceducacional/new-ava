@@ -648,11 +648,16 @@ export class CoursesService {
 
     const ranking = await this.studentSchoolRanking(user.id, schoolIds);
 
+    const hasSchool = schoolIds.length > 0;
+
     return {
-      essentials: bucket(essentialsRaw),
+      hasSchool,
+      essentials: hasSchool
+        ? bucket(essentialsRaw)
+        : { items: [], total: 0, completed: 0, percent: 0 },
       recommended: bucket(recommendedRaw),
       explore: bucket(exploreRaw),
-      ranking,
+      ranking: hasSchool ? ranking : [],
     };
   }
 

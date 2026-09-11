@@ -1269,6 +1269,16 @@ table.data tr:hover td { background: #fafcfd; }
   font-size: 1.4rem;
   margin-bottom: 0.25rem;
 }
+.auth-switch {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.auth-switch a {
+  color: var(--brand);
+  font-weight: 600;
+}
 
 /* —— Player de vídeo —— */
 .lesson-layout {

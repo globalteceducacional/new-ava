@@ -1,11 +1,12 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuditAction, RoleCode, UserStatus } from '@prisma/client';
+import { Prisma, AuditAction, RoleCode, UserStatus } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser, JwtPayload } from './auth.types';
@@ -16,6 +17,7 @@ import {
   hashToken,
   verifyPassword,
 } from './password.util';
+import { usernameFromEmail } from './username-from-email';
 
 const REFRESH_COOKIE = 'ava_refresh';
 
@@ -47,7 +49,7 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: {
         deletedAt: null,
-        OR: [{ email: login.toLowerCase() }, { username: login }],
+        OR: [{ email: login.toLowerCase() }, { username: login.toLowerCase() }],
       },
       include: {
         role: {
@@ -100,6 +102,78 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken, user: authUser };
+  }
+
+  /** Aluno sem escola — catálogo livre (ava-aberto). Papel e instituições não vêm do cliente. */
+  async register(
+    dto: { name: string; email: string; password: string },
+    meta: { ip?: string; userAgent?: string },
+  ): Promise<{ accessToken: string; refreshToken: string; user: AuthUser }> {
+    await this.protection.assertIpAllowed(meta.ip);
+
+    const email = dto.email.trim().toLowerCase();
+    const name = dto.name.trim();
+
+    const existing = await this.prisma.user.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException('E-mail já cadastrado');
+    }
+
+    const role = await this.prisma.role.findUniqueOrThrow({
+      where: { code: RoleCode.ALUNO },
+    });
+    const username = await this.allocateUsername(email);
+    const passwordHash = await hashPassword(dto.password);
+
+    try {
+      const created = await this.prisma.user.create({
+        data: {
+          name,
+          email,
+          username,
+          passwordHash,
+          roleId: role.id,
+          status: UserStatus.ACTIVE,
+        },
+        include: {
+          role: {
+            include: {
+              rolePermissions: { include: { permission: true } },
+            },
+          },
+          memberships: {
+            where: { deletedAt: null },
+            select: {
+              institutionId: true,
+              institution: { select: { slug: true } },
+            },
+          },
+        },
+      });
+
+      const authUser = this.toAuthUser(created);
+      const accessToken = await this.signAccess(authUser);
+      const refreshToken = await this.issueRefresh(created.id, meta);
+
+      await this.audit.record({
+        action: AuditAction.USER_CREATE,
+        actorId: created.id,
+        metadata: { selfRegister: true, username, ...meta },
+      });
+
+      return { accessToken, refreshToken, user: authUser };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException('E-mail já cadastrado');
+      }
+      throw err;
+    }
   }
 
   async refresh(
@@ -206,6 +280,21 @@ export class AuthService {
     if (!user.institutionIds.includes(institutionId)) {
       throw new ForbiddenException('Sem acesso a esta instituição');
     }
+  }
+
+  /** Username a partir do e-mail; sufixo se já existir (ex.: seed `aluno`). */
+  private async allocateUsername(email: string): Promise<string> {
+    const base = usernameFromEmail(email);
+    for (let i = 0; i < 40; i++) {
+      const suffix = i === 0 ? '' : String(i + 1);
+      const candidate = `${base.slice(0, 32 - suffix.length)}${suffix}`;
+      const taken = await this.prisma.user.findUnique({
+        where: { username: candidate },
+        select: { id: true },
+      });
+      if (!taken) return candidate;
+    }
+    return `aluno${Date.now().toString(36)}`.slice(0, 32);
   }
 
   private async signAccess(user: AuthUser): Promise<string> {

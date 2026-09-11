@@ -37,8 +37,13 @@ export function middleware(request: NextRequest) {
   const session = request.cookies.get('ava_session')?.value;
   const role = trustedRole(request.cookies.get('ava_role')?.value);
 
-  // Já autenticado em /login → entra direto no painel do perfil.
-  if (pathname === '/login' || pathname.startsWith('/login/')) {
+  // Já autenticado em /login ou /cadastro → entra direto no painel do perfil.
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/login/') ||
+    pathname === '/cadastro' ||
+    pathname.startsWith('/cadastro/')
+  ) {
     if (session) {
       const next = request.nextUrl.searchParams.get('next');
       const dest =
@@ -80,6 +85,8 @@ export const config = {
   matcher: [
     '/login',
     '/login/:path*',
+    '/cadastro',
+    '/cadastro/:path*',
     '/aluno/:path*',
     '/professor/:path*',
     '/instituicao/:path*',

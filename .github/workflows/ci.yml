@@ -130,11 +130,12 @@ jobs:
   deploy-vps:
     name: Deploy VPS
     needs: lint-typecheck-test-build
+    # Não usar `secrets.*` neste `if` — o GitHub recusa o YAML inteiro
+    # ("Unrecognized named-value: secrets") e nenhum job sobe.
     if: >-
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
-      vars.SKIP_VPS_DEPLOY != 'true' &&
-      secrets.VPS_HOST != ''
+      vars.SKIP_VPS_DEPLOY != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     concurrency:
